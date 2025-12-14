@@ -3,97 +3,74 @@ import 'package:path/path.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._internal();
-  static Database? _database;
-
   DatabaseHelper._internal();
 
+  static Database? _db;
+
   Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDB();
-    return _database!;
+    if (_db != null) return _db!;
+    _db = await _initDB('absence_tracker.db');
+    return _db!;
   }
 
-  Future<Database> _initDB() async {
+  Future<Database> _initDB(String fileName) async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'absence_tracker.db');
-
+    final path = join(dbPath, fileName);
     return await openDatabase(path, version: 1, onCreate: _onCreate);
   }
 
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE groups (
+      CREATE TABLE groups(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        filiere TEXT NOT NULL
-      )
+        filiere TEXT
+      );
     ''');
 
     await db.execute('''
-      CREATE TABLE students (
+      CREATE TABLE students(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         groupId INTEGER,
         massar TEXT,
         firstName TEXT,
         lastName TEXT,
         email TEXT,
-        FOREIGN KEY (groupId) REFERENCES groups(id)
-      )
+        FOREIGN KEY(groupId) REFERENCES groups(id) ON DELETE SET NULL
+      );
     ''');
 
     await db.execute('''
-      CREATE TABLE modules (
+      CREATE TABLE modules(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
+        name TEXT NOT NULL,
         semester TEXT,
         groupId INTEGER,
-        FOREIGN KEY (groupId) REFERENCES groups(id)
-      )
+        FOREIGN KEY(groupId) REFERENCES groups(id) ON DELETE SET NULL
+      );
     ''');
 
     await db.execute('''
-      CREATE TABLE sessions (
+      CREATE TABLE sessions(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         moduleId INTEGER,
         date TEXT,
         time TEXT,
         type TEXT,
-        FOREIGN KEY (moduleId) REFERENCES modules(id)
-      )
+        FOREIGN KEY(moduleId) REFERENCES modules(id) ON DELETE CASCADE
+      );
     ''');
 
     await db.execute('''
-      CREATE TABLE absences (
+      CREATE TABLE absences(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sessionId INTEGER,
         studentId INTEGER,
-        status TEXT,
+        status TEXT,  -- present, absent, justified
         note TEXT,
-        FOREIGN KEY (sessionId) REFERENCES sessions(id),
-        FOREIGN KEY (studentId) REFERENCES students(id)
-      )
+        FOREIGN KEY(sessionId) REFERENCES sessions(id) ON DELETE CASCADE,
+        FOREIGN KEY(studentId) REFERENCES students(id) ON DELETE CASCADE
+      );
     ''');
-  }
-
-  // ---------------- CRUD GÉNÉRIQUE ----------------
-
-  Future<int> insert(String table, Map<String, dynamic> data) async {
-    final db = await database;
-    return await db.insert(table, data);
-  }
-
-  Future<List<Map<String, dynamic>>> getAll(String table) async {
-    final db = await database;
-    return await db.query(table);
-  }
-
-  Future<int> update(String table, Map<String, dynamic> data, int id) async {
-    final db = await database;
-    return await db.update(table, data, where: 'id = ?', whereArgs: [id]);
-  }
-
-  Future<int> delete(String table, int id) async {
-    final db = await database;
-    return await db.delete(table, where: 'id = ?', whereArgs: [id]);
   }
 }
