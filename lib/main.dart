@@ -1,15 +1,27 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 
 void main() {
   runApp(const MyApp());
+=======
+import 'package:provider/provider.dart';
+import 'providers/stats_provider.dart';
+import 'providers/session_provider.dart';
+import 'screens/home_screen.dart';
+// import other screens...
+
+void main() {
+  runApp(const AbsenceTrackerApp());
+>>>>>>> IKRAM
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class AbsenceTrackerApp extends StatelessWidget {
+  const AbsenceTrackerApp({super.key});
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
@@ -117,6 +129,31 @@ class _MyHomePageState extends State<MyHomePage> {
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
+=======
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => StatsProvider()),
+        ChangeNotifierProvider(create: (_) => SessionProvider()),
+        // Add other providers here...
+      ],
+      child: MaterialApp(
+        title: 'Absence Tracker',
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const HomeScreen(),
+          '/groups': (context) =>
+              const Placeholder(), // replace with GroupsScreen()
+          '/sessions': (context) =>
+              const Placeholder(), // replace with SessionsScreen()
+          '/markAbsence': (context) =>
+              const Placeholder(), // replace with MarkAbsenceScreen()
+          '/statistics': (context) =>
+              const Placeholder(), // replace with StatisticsScreen()
+          '/settings': (context) =>
+              const Placeholder(), // replace with SettingsScreen()
+        },
+      ),
+>>>>>>> IKRAM
     );
   }
 }
