@@ -1,42 +1,100 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'providers/stats_provider.dart';
-import 'providers/session_provider.dart';
-import 'screens/home_screen.dart';
-// import other screens...
+import 'database/login_page.dart';
 
 void main() {
-  runApp(const AbsenceTrackerApp());
+  runApp(const MyApp());
 }
 
-class AbsenceTrackerApp extends StatelessWidget {
-  const AbsenceTrackerApp({super.key});
+/*void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await DatabaseHelper.instance.database; // initialisation
+  runApp(const MyApp());
+}
+*/
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => StatsProvider()),
-        ChangeNotifierProvider(create: (_) => SessionProvider()),
-        // Add other providers here...
-      ],
-      child: MaterialApp(
-        title: 'Absence Tracker',
-        initialRoute: '/',
-        routes: {
-          '/': (context) => const HomeScreen(),
-          '/groups': (context) =>
-              const Placeholder(), // replace with GroupsScreen()
-          '/sessions': (context) =>
-              const Placeholder(), // replace with SessionsScreen()
-          '/markAbsence': (context) =>
-              const Placeholder(), // replace with MarkAbsenceScreen()
-          '/statistics': (context) =>
-              const Placeholder(), // replace with StatisticsScreen()
-          '/settings': (context) =>
-              const Placeholder(), // replace with SettingsScreen()
-        },
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: LoginPage(),
+    );
+  }
+}
+/*import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(home: const HomePage());
+  }
+}
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  String dbPath = '...';
+
+  @override
+  void initState() {
+    super.initState();
+    getDatabasePath();
+  }
+
+  Future<void> getDatabasePath() async {
+    // Chemin des bases de données SQLite
+    String databasesPath = await getDatabasesPath();
+    String path = join(databasesPath, 'mydatabase.db');
+
+    // Crée la DB si elle n’existe pas
+    Database db = await openDatabase(
+      path,
+      version: 1,
+      onCreate: (Database db, int version) async {
+        await db.execute(
+          'CREATE TABLE Test (id INTEGER PRIMARY KEY, name TEXT)',
+        );
+      },
+    );
+
+    await db.close();
+
+    setState(() {
+      dbPath = path; // Affiche le chemin exact
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Chemin DB SQLite')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Chemin de la DB :\n$dbPath',
+            style: const TextStyle(fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+        ),
       ),
     );
   }
 }
+*/
