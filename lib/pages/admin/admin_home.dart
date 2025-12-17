@@ -8,23 +8,23 @@ import "../../database/login_page.dart";
 class AdminHome extends StatelessWidget {
   const AdminHome({super.key});
 
-  static const Color primaryBlue = Color(0xFF0A2E5C);
-
+  static const Color lightBlue = Color(0xFF4A90E2); // 🔵 Bleu clair
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
-
       appBar: AppBar(
-        backgroundColor: primaryBlue,
+        backgroundColor: lightBlue,
         elevation: 0,
         centerTitle: true,
         title: const Text(
           'Administration',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
+          style: TextStyle(
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
+              color: Colors.white),
         ),
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -34,11 +34,11 @@ class AdminHome extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: primaryBlue,
+                color: lightBlue,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black12,
+                    color: Colors.white.withOpacity(0.2),
                     blurRadius: 6,
                     offset: const Offset(0, 3),
                   ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import "../../widgets/GestionPage.dart"; // le widget réutilisable
+import "../../widgets/gestion_page.dart";
+// le widget réutilisable
 
 class GestionCoordinateursPage extends StatelessWidget {
   const GestionCoordinateursPage({super.key});
