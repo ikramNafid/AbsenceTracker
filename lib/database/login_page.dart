@@ -55,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
       case 2:
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const ProfHome()),
+          MaterialPageRoute(builder: (_) => ProfHome()),
         );
         break;
       case 3:
@@ -123,7 +123,7 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 8),
                       const Text(
                         'Connexion',
-                        style: TextStyle(fontSize: 20, color: Colors.grey),
+                        style: TextStyle(fontSize: 20, color: Colors.white),
                       ),
                       const SizedBox(height: 32),
                       TextField(

@@ -19,7 +19,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -47,12 +47,24 @@ class DatabaseHelper {
       )
     ''');
 
+    // Table filieres
+    await db.execute('''
+      CREATE TABLE filieres(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nom TEXT NOT NULL,
+        description TEXT
+      )
+    ''');
+
     // Table groups
     await db.execute('''
       CREATE TABLE groups(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        filiere TEXT NOT NULL
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  idFiliere INTEGER,
+  profId INTEGER,           
+  FOREIGN KEY(idFiliere) REFERENCES filieres(id),
+  FOREIGN KEY(profId) REFERENCES users(id)
       )
     ''');
 
@@ -104,13 +116,27 @@ class DatabaseHelper {
       )
     ''');
 
-    // INSERTION DES RÔLES
+    // Insérer filières par défaut
+    await db.insert(
+        'filieres', {'nom': 'IA', 'description': 'Intelligence Artificielle'});
+    await db.insert(
+        'filieres', {'nom': 'GINF', 'description': 'Génie Informatique'});
+    await db.insert('filieres', {
+      'nom': 'IRSI',
+      'description': 'Informatique Réseaux et Systèmes d’Information'
+    });
+    await db.insert('filieres', {
+      'nom': 'ROC',
+      'description': 'Réseaux, Organisation et Communication'
+    });
+
+    // Insérer rôles par défaut
     await db.insert('roles', {'name': 'Etudiant'});
     await db.insert('roles', {'name': 'Professeur'});
     await db.insert('roles', {'name': 'Coordinateur'});
     await db.insert('roles', {'name': 'Admin'});
 
-    // INSERTION DES UTILISATEURS PAR DÉFAUT
+    // Insérer utilisateurs par défaut
     await db.insert('users', {
       'firstName': 'Ikram',
       'lastName': 'Nafid',
@@ -145,7 +171,8 @@ class DatabaseHelper {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 3) {
+    if (oldVersion < 4) {
+      await db.execute('DROP TABLE IF EXISTS filieres');
       await db.execute('DROP TABLE IF EXISTS users');
       await db.execute('DROP TABLE IF EXISTS roles');
       await db.execute('DROP TABLE IF EXISTS students');
@@ -157,83 +184,179 @@ class DatabaseHelper {
     }
   }
 
-  // LOGIN avec rôle
+  // ================== Méthodes Filières ==================
+  Future<List<Map<String, dynamic>>> getFilieres() async {
+    final db = await database;
+    return await db.query('filieres');
+  }
+
+  Future<int> insertFiliere(Map<String, dynamic> filiere) async {
+    final db = await database;
+    return await db.insert('filieres', filiere);
+  }
+
+  Future<int> deleteFiliere(int id) async {
+    final db = await database;
+    return await db.delete('filieres', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ================== Méthodes Groupes ==================
+  Future<List<Map<String, dynamic>>> getGroups() async {
+    final db = await database;
+    return await db.query('groups');
+  }
+
+  Future<int> insertGroup(Map<String, dynamic> group) async {
+    final db = await database;
+    return await db.insert('groups', group);
+  }
+
+  Future<int> updateGroup(int id, Map<String, dynamic> group) async {
+    final db = await database;
+    return await db.update('groups', group, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteGroup(int id) async {
+    final db = await database;
+    return await db.delete('groups', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ================== Login ==================
   Future<Map<String, dynamic>?> login(String email, String password) async {
     final db = await database;
-    final res = await db.rawQuery(
-      '''
+    final res = await db.rawQuery('''
       SELECT u.id, u.firstName, u.lastName, u.email, u.roleId, r.name as roleName
       FROM users u
       JOIN roles r ON u.roleId = r.id
       WHERE u.email = ? AND u.password = ?
-      ''',
-      [email, password],
-    );
+    ''', [email, password]);
 
-    if (res.isNotEmpty) {
-      return res.first;
-    }
+    if (res.isNotEmpty) return res.first;
     return null;
   }
 
-  // Récupérer tous les étudiants depuis la table students
+  // ================== Étudiants ==================
   Future<List<Map<String, dynamic>>> getStudents() async {
     final db = await database;
     return await db.rawQuery('''
-      SELECT s.id, s.firstName, s.lastName, s.email, s.massar, g.name as groupName, g.filiere
+      SELECT s.id, s.firstName, s.lastName, s.email, s.massar, g.name as groupName, f.nom as filiere
       FROM students s
       LEFT JOIN groups g ON s.groupId = g.id
+      LEFT JOIN filieres f ON f.id = g.idFiliere
     ''');
   }
 
-  // Ajouter un étudiant et créer automatiquement le compte académique
   Future<int> insertStudent(Map<String, dynamic> student) async {
     final db = await database;
-
-    // 1️⃣ Insérer dans students
     final id = await db.insert('students', student);
 
-    // 2️⃣ Créer le compte académique
     final firstName = student['firstName'] ?? '';
     final lastName = student['lastName'] ?? '';
     final massar = student['massar'] ?? '';
-
     final email = '${firstName.toLowerCase()}${lastName.toLowerCase()}@ump.com';
 
-    // Vérifier si le compte existe déjà
-    final existing = await db.query(
-      'users',
-      where: 'email = ?',
-      whereArgs: [email],
-    );
-
+    final existing =
+        await db.query('users', where: 'email = ?', whereArgs: [email]);
     if (existing.isEmpty) {
       await db.insert('users', {
         'firstName': firstName,
         'lastName': lastName,
         'email': email,
         'password': massar,
-        'roleId': 1, // Étudiant
+        'roleId': 1,
       });
     }
 
     return id;
   }
 
-  // Mettre à jour un étudiant
   Future<int> updateStudent(int id, Map<String, dynamic> student) async {
     final db = await database;
-    return await db.update(
-      'students',
-      student,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db
+        .update('students', student, where: 'id = ?', whereArgs: [id]);
   }
 
-  // Supprimer un étudiant
   Future<int> deleteStudent(int id) async {
     final db = await database;
     return await db.delete('students', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ================== Professeurs ==================
+  Future<List<Map<String, dynamic>>> getProfesseurs() async {
+    final db = await database;
+    return await db.query('users', where: 'roleId = ?', whereArgs: [2]);
+  }
+
+  Future<int> insertUser(Map<String, dynamic> user) async {
+    final db = await database;
+    return await db.insert('users', user);
+  }
+
+  Future<int> updateUser(int id, Map<String, dynamic> user) async {
+    final db = await database;
+    return await db.update('users', user, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteUser(int id) async {
+    final db = await database;
+    return await db.delete('users', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ================== Coordinateurs ==================
+  Future<List<Map<String, dynamic>>> getCoordinateurs() async {
+    final db = await database;
+    return await db.query('users', where: 'roleId = ?', whereArgs: [3]);
+  }
+
+  Future<int> insertCoordinateur(Map<String, dynamic> coord) async {
+    final db = await database;
+    return await db.insert('users', coord);
+  }
+
+  Future<int> updateCoordinateur(int id, Map<String, dynamic> coord) async {
+    final db = await database;
+    return await db.update('users', coord, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteCoordinateur(int id) async {
+    final db = await database;
+    return await db.delete('users', where: 'id = ?', whereArgs: [id]);
+  }
+  // ================== Absences ==================
+
+// Récupérer les étudiants par groupe
+  Future<List<Map<String, dynamic>>> getStudentsByGroup(int groupId) async {
+    final db = await database;
+    return await db.query(
+      'students',
+      where: 'groupId = ?',
+      whereArgs: [groupId],
+    );
+  }
+
+// Ajouter une absence
+  Future<int> insertAbsence(Map<String, dynamic> absence) async {
+    final db = await database;
+    return await db.insert('absences', absence);
+  }
+
+// Récupérer les absences d'une session
+  Future<List<Map<String, dynamic>>> getAbsencesBySession(int sessionId) async {
+    final db = await database;
+    return await db.query(
+      'absences',
+      where: 'sessionId = ?',
+      whereArgs: [sessionId],
+    );
+  }
+
+  Future<int> assignProfToGroup(int groupId, int profId) async {
+    final db = await database;
+    return await db.update(
+      'groups',
+      {'profId': profId},
+      where: 'id = ?',
+      whereArgs: [groupId],
+    );
   }
 }
