@@ -1,3 +1,7 @@
+
+import 'package:absence_tracker/pages/student/notifications_page.dart';
+import 'package:absence_tracker/pages/student/student_history_page.dart';
+import 'package:absence_tracker/pages/student/validate_presence_qr.dart';
 import 'package:absence_tracker/widgets/homeButton.dart';
 import 'package:flutter/material.dart';
 
@@ -52,25 +56,42 @@ class StudentHomePage extends StatelessWidget {
               icon: Icons.history,
               title: "Mes absences",
               onTap: () {
-                // Navigator.push(...)
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StudentHistoryPage(studentId: 1,),
+                  ),
+                );
               },
             ),
+
 
             // Notifications
             HomeButton(
               icon: Icons.notifications,
               title: "Notifications",
               onTap: () {
-                // Navigator.push(...)
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationsPage(),
+                  ),
+                );
               },
             ),
 
-            // 📷 QR Code
+            // QR Code
             HomeButton(
               icon: Icons.qr_code_scanner,
               title: "Valider ma présence",
               onTap: () {
-                // Navigator.push(...)
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ValidatePresenceQRPage(studentId: 1),
+                  ),
+                );
               },
             ),
           ],

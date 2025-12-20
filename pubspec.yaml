@@ -5,12 +5,17 @@ publish_to: 'none' # Projet privé, ne sera pas publié
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.9.2
+  sdk: ">=3.0.0 <4.0.0"
+
 
 dependencies:
   flutter:
     sdk: flutter
-  
+  path_provider: ^2.0.15
+  # sqflite: ^2.2.8+4
+  file_picker: ^10.3.7
+  csv: ^6.0.0
+  # path: ^1.8.4
 
   # Base de données SQLite
   sqflite: ^2.3.0
@@ -21,6 +26,10 @@ dependencies:
 
   # Cupertino Icons
   cupertino_icons: ^1.0.8
+
+  # pour scanner le code qr
+  mobile_scanner: ^3.5.6
+
 
 dev_dependencies:
   flutter_test:
