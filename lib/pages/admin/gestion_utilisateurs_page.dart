@@ -6,32 +6,30 @@ import 'gestion_coordinateurs_page.dart';
 class GestionUtilisateursPage extends StatelessWidget {
   const GestionUtilisateursPage({super.key});
 
-  static const Color lightBlue = Color(0xFF4A90E2); // 🔵 Bleu clair
+  static const Color lightBlue = Color(0xFF3B82F6); // bleu principal
+  static const Color backgroundGray = Color(0xFFF3F6FB); // fond gris clair
+  static const Color cardWhite = Colors.white;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-
+      backgroundColor: backgroundGray,
       appBar: AppBar(
         backgroundColor: lightBlue,
-        elevation: 2,
+        elevation: 4,
         centerTitle: true,
         title: const Text(
           'Gestion des utilisateurs',
           style: TextStyle(
-            color: Colors.white, // ⚪ titre blanc
+            color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
-        iconTheme: const IconThemeData(
-          color: Colors.white, // ⚪ icônes blanches
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             _buildCard(
@@ -52,31 +50,27 @@ class GestionUtilisateursPage extends StatelessWidget {
               title: 'Gestion des coordinateurs',
               page: const GestionCoordinateursPage(),
             ),
-
-            const SizedBox(height: 80), // espace pour le bouton flottant
+            const SizedBox(height: 100), // espace pour le bouton flottant
           ],
         ),
       ),
 
-      /// 🔽 Bouton flèche retour
-      floatingActionButton: SizedBox(
-        width: 150,
-        height: 60,
-        child: FloatingActionButton(
-          backgroundColor: lightBlue, // même bleu clair
-          elevation: 6,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          onPressed: () => Navigator.pop(context),
-          child: const Icon(
-            Icons.arrow_back,
-            size: 50,
-            color: Colors.white,
-          ),
+      // 🔽 Bouton retour professionnel
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.pop(context),
+        backgroundColor: Colors.white,
+        foregroundColor: lightBlue,
+        elevation: 6,
+        icon: const Icon(Icons.arrow_back),
+        label: const Text(
+          'Retour',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: lightBlue, width: 1.5),
         ),
       ),
-
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
@@ -88,29 +82,39 @@ class GestionUtilisateursPage extends StatelessWidget {
     required Widget page,
   }) {
     return Card(
-      elevation: 4,
+      elevation: 6,
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 14,
-        ),
-        leading: Icon(icon, size: 32, color: lightBlue),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shadowColor: Colors.black26,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => page),
           );
         },
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          leading: Container(
+            decoration: BoxDecoration(
+              color: lightBlue.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            padding: const EdgeInsets.all(10),
+            child: Icon(icon, size: 32, color: lightBlue),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.black87),
+          ),
+          trailing:
+              const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 20),
+        ),
       ),
     );
   }

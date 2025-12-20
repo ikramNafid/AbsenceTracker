@@ -19,14 +19,14 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 5,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _createDB(Database db, int version) async {
-    // Table roles
+    // ======= CREATION DES TABLES =======
     await db.execute('''
       CREATE TABLE roles(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,7 +34,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Table users
     await db.execute('''
       CREATE TABLE users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,16 +46,23 @@ class DatabaseHelper {
       )
     ''');
 
-    // Table groups
+    await db.execute('''
+      CREATE TABLE filieres(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nom TEXT NOT NULL,
+        description TEXT
+      )
+    ''');
+
     await db.execute('''
       CREATE TABLE groups(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        filiere TEXT NOT NULL
+        idFiliere INTEGER,
+        FOREIGN KEY(idFiliere) REFERENCES filieres(id)
       )
     ''');
 
-    // Table students
     await db.execute('''
       CREATE TABLE students(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,7 +75,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Table modules
     await db.execute('''
       CREATE TABLE modules(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,7 +85,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Table sessions
     await db.execute('''
       CREATE TABLE sessions(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,7 +96,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Table absences
     await db.execute('''
       CREATE TABLE absences(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -104,136 +107,225 @@ class DatabaseHelper {
       )
     ''');
 
-    // INSERTION DES RÔLES
-    await db.insert('roles', {'name': 'Etudiant'});
-    await db.insert('roles', {'name': 'Professeur'});
-    await db.insert('roles', {'name': 'Coordinateur'});
-    await db.insert('roles', {'name': 'Admin'});
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS filiere_coordinateur(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filiereId INTEGER NOT NULL,
+        coordinateurId INTEGER NOT NULL,
+        FOREIGN KEY(filiereId) REFERENCES filieres(id),
+        FOREIGN KEY(coordinateurId) REFERENCES users(id)
+      )
+    ''');
 
-    // INSERTION DES UTILISATEURS PAR DÉFAUT
-    await db.insert('users', {
-      'firstName': 'Ikram',
-      'lastName': 'Nafid',
-      'email': 'ikram@ump.com',
-      'password': '2003',
-      'roleId': 1,
-    });
+    // ====== INSÉRER LES DONNÉES PAR DÉFAUT SI VIDE ======
+    final rolesCount = await db.query('roles');
+    if (rolesCount.isEmpty) {
+      await db.insert('roles', {'name': 'Etudiant'});
+      await db.insert('roles', {'name': 'Professeur'});
+      await db.insert('roles', {'name': 'Coordinateur'});
+      await db.insert('roles', {'name': 'Admin'});
+    }
 
-    await db.insert('users', {
-      'firstName': 'Mohammed',
-      'lastName': 'Boudchiche',
-      'email': 'mohammed@ump.com',
-      'password': '1234',
-      'roleId': 2,
-    });
+    final filieresCount = await db.query('filieres');
+    if (filieresCount.isEmpty) {
+      await db.insert('filieres',
+          {'nom': 'IA', 'description': 'Intelligence Artificielle'});
+      await db.insert(
+          'filieres', {'nom': 'GINF', 'description': 'Génie Informatique'});
+      await db.insert('filieres', {
+        'nom': 'IRSI',
+        'description': 'Informatique Réseaux et Systèmes d’Information'
+      });
+      await db.insert('filieres', {
+        'nom': 'ROC',
+        'description': 'Réseaux, Organisation et Communication'
+      });
+    }
 
-    await db.insert('users', {
-      'firstName': 'Sofia',
-      'lastName': 'Elhaj',
-      'email': 'sofia@ump.com',
-      'password': 'abcd',
-      'roleId': 3,
-    });
+    final usersCount = await db.query('users');
+    if (usersCount.isEmpty) {
+      await db.insert('users', {
+        'firstName': 'Ikram',
+        'lastName': 'Nafid',
+        'email': 'ikram@ump.com',
+        'password': '2003',
+        'roleId': 1,
+      });
 
-    await db.insert('users', {
-      'firstName': 'Admin',
-      'lastName': 'Admin',
-      'email': 'admin@ump.com',
-      'password': 'admin',
-      'roleId': 4,
-    });
-  }
+      await db.insert('users', {
+        'firstName': 'Mohammed',
+        'lastName': 'Boudchiche',
+        'email': 'mohammed@ump.com',
+        'password': '1234',
+        'roleId': 2,
+      });
 
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 3) {
-      await db.execute('DROP TABLE IF EXISTS users');
-      await db.execute('DROP TABLE IF EXISTS roles');
-      await db.execute('DROP TABLE IF EXISTS students');
-      await db.execute('DROP TABLE IF EXISTS groups');
-      await db.execute('DROP TABLE IF EXISTS modules');
-      await db.execute('DROP TABLE IF EXISTS sessions');
-      await db.execute('DROP TABLE IF EXISTS absences');
-      await _createDB(db, newVersion);
+      await db.insert('users', {
+        'firstName': 'Sofia',
+        'lastName': 'Elhaj',
+        'email': 'sofia@ump.com',
+        'password': 'abcd',
+        'roleId': 3,
+      });
+
+      await db.insert('users', {
+        'firstName': 'Admin',
+        'lastName': 'Admin',
+        'email': 'admin@ump.com',
+        'password': 'admin',
+        'roleId': 4,
+      });
     }
   }
 
-  // LOGIN avec rôle
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 5) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS filiere_coordinateur(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          filiereId INTEGER NOT NULL,
+          coordinateurId INTEGER NOT NULL,
+          FOREIGN KEY(filiereId) REFERENCES filieres(id),
+          FOREIGN KEY(coordinateurId) REFERENCES users(id)
+        )
+      ''');
+    }
+  }
+
+  // ================== MÉTHODES FILIÈRES ==================
+  Future<List<Map<String, dynamic>>> getFilieres() async {
+    final db = await database;
+    return await db.query('filieres');
+  }
+
+  Future<int> insertFiliere(Map<String, dynamic> filiere) async {
+    final db = await database;
+    return await db.insert('filieres', filiere);
+  }
+
+  Future<int> updateFiliere(int id, Map<String, dynamic> filiere) async {
+    final db = await database;
+    return await db
+        .update('filieres', filiere, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteFiliere(int id) async {
+    final db = await database;
+    return await db.delete('filieres', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ================== MÉTHODES GROUPES ==================
+  Future<List<Map<String, dynamic>>> getGroups() async {
+    final db = await database;
+    return await db.query('groups');
+  }
+
+  Future<int> insertGroup(Map<String, dynamic> group) async {
+    final db = await database;
+    return await db.insert('groups', group);
+  }
+
+  Future<int> updateGroup(int id, Map<String, dynamic> group) async {
+    final db = await database;
+    return await db.update('groups', group, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteGroup(int id) async {
+    final db = await database;
+    return await db.delete('groups', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ================== MÉTHODES ÉTUDIANTS ==================
+  Future<List<Map<String, dynamic>>> getStudents() async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT s.id, s.firstName, s.lastName, s.email, s.massar, g.name as groupName, f.nom as filiere
+      FROM students s
+      LEFT JOIN groups g ON s.groupId = g.id
+      LEFT JOIN filieres f ON f.id = g.idFiliere
+    ''');
+  }
+
+  Future<int> insertStudent(Map<String, dynamic> student) async {
+    final db = await database;
+    return await db.insert('students', student);
+  }
+
+  Future<int> updateStudent(int id, Map<String, dynamic> student) async {
+    final db = await database;
+    return await db
+        .update('students', student, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteStudent(int id) async {
+    final db = await database;
+    return await db.delete('students', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ================== MÉTHODES PROFESSEURS ==================
+  Future<List<Map<String, dynamic>>> getProfesseurs() async {
+    final db = await database;
+    return await db.query('users', where: 'roleId = ?', whereArgs: [2]);
+  }
+
+  // ================== MÉTHODES COORDINATEURS ==================
+  Future<List<Map<String, dynamic>>> getCoordinateurs() async {
+    final db = await database;
+    return await db.query('users', where: 'roleId = ?', whereArgs: [3]);
+  }
+
+  Future<int> assignFiliereToCoordinateur(
+      int filiereId, int coordinateurId) async {
+    final db = await database;
+    final existing = await db.query(
+      'filiere_coordinateur',
+      where: 'filiereId = ? AND coordinateurId = ?',
+      whereArgs: [filiereId, coordinateurId],
+    );
+    if (existing.isNotEmpty) return 0;
+    return await db.insert('filiere_coordinateur', {
+      'filiereId': filiereId,
+      'coordinateurId': coordinateurId,
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getFiliereCoordinateurs() async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT fc.id, f.nom as filiere, u.firstName || ' ' || u.lastName as coordinateur
+      FROM filiere_coordinateur fc
+      JOIN filieres f ON fc.filiereId = f.id
+      JOIN users u ON fc.coordinateurId = u.id
+    ''');
+  }
+
+  // ================== MÉTHODES UTILISATEURS ==================
+  Future<int> insertUser(Map<String, dynamic> user) async {
+    final db = await database;
+    return await db.insert('users', user);
+  }
+
+  Future<int> updateUser(int id, Map<String, dynamic> user) async {
+    final db = await database;
+    return await db.update('users', user, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteUser(int id) async {
+    final db = await database;
+    return await db.delete('users', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ================== LOGIN ==================
   Future<Map<String, dynamic>?> login(String email, String password) async {
     final db = await database;
-    final res = await db.rawQuery(
-      '''
+    final res = await db.rawQuery('''
       SELECT u.id, u.firstName, u.lastName, u.email, u.roleId, r.name as roleName
       FROM users u
       JOIN roles r ON u.roleId = r.id
       WHERE u.email = ? AND u.password = ?
-      ''',
-      [email, password],
-    );
+    ''', [email, password]);
 
-    if (res.isNotEmpty) {
-      return res.first;
-    }
+    if (res.isNotEmpty) return res.first;
     return null;
-  }
-
-  // Récupérer tous les étudiants depuis la table students
-  Future<List<Map<String, dynamic>>> getStudents() async {
-    final db = await database;
-    return await db.rawQuery('''
-      SELECT s.id, s.firstName, s.lastName, s.email, s.massar, g.name as groupName, g.filiere
-      FROM students s
-      LEFT JOIN groups g ON s.groupId = g.id
-    ''');
-  }
-
-  // Ajouter un étudiant et créer automatiquement le compte académique
-  Future<int> insertStudent(Map<String, dynamic> student) async {
-    final db = await database;
-
-    // 1️⃣ Insérer dans students
-    final id = await db.insert('students', student);
-
-    // 2️⃣ Créer le compte académique
-    final firstName = student['firstName'] ?? '';
-    final lastName = student['lastName'] ?? '';
-    final massar = student['massar'] ?? '';
-
-    final email = '${firstName.toLowerCase()}${lastName.toLowerCase()}@ump.com';
-
-    // Vérifier si le compte existe déjà
-    final existing = await db.query(
-      'users',
-      where: 'email = ?',
-      whereArgs: [email],
-    );
-
-    if (existing.isEmpty) {
-      await db.insert('users', {
-        'firstName': firstName,
-        'lastName': lastName,
-        'email': email,
-        'password': massar,
-        'roleId': 1, // Étudiant
-      });
-    }
-
-    return id;
-  }
-
-  // Mettre à jour un étudiant
-  Future<int> updateStudent(int id, Map<String, dynamic> student) async {
-    final db = await database;
-    return await db.update(
-      'students',
-      student,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
-  // Supprimer un étudiant
-  Future<int> deleteStudent(int id) async {
-    final db = await database;
-    return await db.delete('students', where: 'id = ?', whereArgs: [id]);
   }
 }

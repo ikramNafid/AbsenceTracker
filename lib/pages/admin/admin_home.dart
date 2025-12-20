@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'gestion_utilisateurs_page.dart';
-import 'gestion_filiere.dart';
+//import 'gestion_filiere_groupe.dart';
 import 'statistiques.dart';
 import 'settings.dart';
 import "../../database/login_page.dart";
+import "../admin/gestion-fliere_groupes.dart/gestion_academique_home.dart";
 
 class AdminHome extends StatelessWidget {
   const AdminHome({super.key});
@@ -85,13 +86,13 @@ class AdminHome extends StatelessWidget {
                   _buildActionCard(
                     context,
                     icon: Icons.upload_file,
-                    title: 'Gestion des filières',
+                    title: 'Gestion des filières et des groupes',
                     color: Colors.orange,
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const GestionFilieresPage(),
+                          builder: (_) => const GestionAcademiqueHome(),
                         ),
                       );
                     },
