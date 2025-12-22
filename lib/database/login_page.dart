@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'database_helper.dart';
 import '../pages/student/student_home.dart';
-import '../pages/professor/prof_home.dart';
+import '../pages/professor/professor_home_page.dart';
 import '../pages/coordinateur/coordinator_home.dart';
 import '../pages/admin/admin_home.dart';
 
@@ -55,9 +55,16 @@ class _LoginPageState extends State<LoginPage> {
       case 2:
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => ProfHome()),
+          MaterialPageRoute(
+            builder: (_) => ProfessorHomePage(
+              professorName: user['firstName'] + ' ' + user['lastName'],
+              email: user['email'],
+            ),
+          ),
         );
+
         break;
+
       case 3:
         Navigator.pushReplacement(
           context,

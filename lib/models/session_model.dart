@@ -1,13 +1,25 @@
 class SessionModel {
-  final int id;
-  final String moduleName;
-  final String date; // You can switch to DateTime if you prefer.
-  final String time;
+  int? id;
+  String name;
+  String groupName;
 
-  SessionModel({
-    required this.id,
-    required this.moduleName,
-    required this.date,
-    required this.time,
-  });
+  SessionModel({this.id, required this.name, required this.groupName});
+
+  // Convertir un Map (SQLite) en SessionModel
+  factory SessionModel.fromMap(Map<String, dynamic> map) {
+    return SessionModel(
+      id: map['id'],
+      name: map['name'],
+      groupName: map['group_name'],
+    );
+  }
+
+  // Convertir un SessionModel en Map pour SQLite
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'group_name': groupName,
+    };
+  }
 }
