@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'database_helper.dart';
 import '../pages/student/student_home.dart';
 import '../pages/professor/professor_home_page.dart';
-import '../pages/coordinateur/coordinator_home.dart';
+import '../pages/coordinator/coordinator_home.dart';
 import '../pages/admin/admin_home.dart';
 
 class LoginPage extends StatefulWidget {
