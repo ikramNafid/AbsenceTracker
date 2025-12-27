@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../database/database_helper.dart';
 
 class AffectProfPage extends StatefulWidget {
   const AffectProfPage({super.key});
@@ -8,46 +9,112 @@ class AffectProfPage extends StatefulWidget {
 }
 
 class _AffectProfPageState extends State<AffectProfPage> {
-  String? selectedProf;
-  String? selectedModule;
+  List<Map<String, dynamic>> modules = [];
+  List<Map<String, dynamic>> profs = [];
 
-  final List<String> profs = ["Prof Karim", "Prof Nadia"];
-  final List<String> modules = ["Java", "Maths", "Réseaux"];
+  int? selectedProfId;
+
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final db = DatabaseHelper.instance;
+
+    final modulesData = await db.getModulesWithGroups();
+    final profsData = await db.getProfesseurs();
+
+    setState(() {
+      modules = modulesData;
+      profs = profsData;
+      isLoading = false;
+    });
+  }
+
+  void _affecterProf(int moduleId) {
+    if (selectedProfId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Veuillez choisir un professeur")),
+      );
+      return;
+    }
+
+    // 🔹 ICI tu peux créer plus tard une table module_professeur
+    // Pour l’instant on affiche juste la confirmation
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Professeur affecté avec succès")),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Affectation professeurs"),
+        title: const Text("Affectation modules → professeurs"),
         backgroundColor: const Color(0xFF0D47A1),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: "Professeur"),
-              items: profs
-                  .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-                  .toList(),
-              onChanged: (v) => setState(() => selectedProf = v),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                // ================== DROPDOWN PROF ==================
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(
+                        labelText: "Choisir un professeur"),
+                    items: profs.map((p) {
+                      return DropdownMenuItem<int>(
+                        value: p['id'],
+                        child: Text("${p['firstName']} ${p['lastName']}"),
+                      );
+                    }).toList(),
+                    onChanged: (v) {
+                      setState(() => selectedProfId = v);
+                    },
+                  ),
+                ),
+
+                const Divider(),
+
+                // ================== LISTE MODULES ==================
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: modules.length,
+                    itemBuilder: (context, index) {
+                      final m = modules[index];
+                      final List groups = m['groups'];
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        elevation: 3,
+                        child: ListTile(
+                          title: Text(
+                            m['name'],
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            groups.isEmpty
+                                ? "Aucun groupe affecté"
+                                : "Groupes : ${groups.join(', ')}",
+                          ),
+                          trailing: ElevatedButton(
+                            onPressed: () => _affecterProf(m['id']),
+                            child: const Text("Affecter"),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: "Module"),
-              items: modules
-                  .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                  .toList(),
-              onChanged: (v) => setState(() => selectedModule = v),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {},
-              child: const Text("Affecter"),
-            )
-          ],
-        ),
-      ),
     );
   }
 }

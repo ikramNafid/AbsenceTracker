@@ -55,8 +55,13 @@ class _LoginPageState extends State<LoginPage> {
       case 2: // Professeur
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const ProfHome()),
+          MaterialPageRoute(
+            builder: (_) =>
+                ProfHome(professorData: user), // pass the user map here
+          ),
         );
+        break;
+
         break;
       case 3: // Coordinateur
         final coordinateurId = user['id']; // Récupération de l'ID

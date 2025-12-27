@@ -23,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 8, // obligatoire
+      version: 9, // obligatoire
       onCreate: _createDB,
       //onUpgrade: _onUpgrade, // si tu veux gérer les migrations
     );
@@ -129,6 +129,37 @@ class DatabaseHelper {
     FOREIGN KEY(coordinateurId) REFERENCES users(id) -- remplacer "coordinateurId" par "coordinateurId"
   )
 ''');
+    await db.execute('''
+CREATE TABLE module_professeur(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  moduleId INTEGER NOT NULL,
+  professeurId INTEGER NOT NULL,
+  FOREIGN KEY(moduleId) REFERENCES modules(id),
+  FOREIGN KEY(professeurId) REFERENCES users(id)
+)
+
+''');
+    Future<List<Map<String, dynamic>>> getProfesseursWithModules() async {
+      final db = await database;
+
+      final data = await db.rawQuery('''
+    SELECT 
+      u.id AS profId,
+      u.firstName || ' ' || u.lastName AS professeur,
+      m.id AS moduleId,
+      m.name AS module,
+      g.name AS groupe
+    FROM module_professeur mp
+    JOIN users u ON mp.professeurId = u.id
+    JOIN modules m ON mp.moduleId = m.id
+    LEFT JOIN module_groups mg ON m.id = mg.moduleId
+    LEFT JOIN groups g ON mg.groupId = g.id
+    WHERE u.roleId = 2
+    ORDER BY professeur, module
+  ''');
+
+      return data;
+    }
 
     // ====== INSÉRER LES DONNÉES PAR DÉFAUT SI VIDE ======
     final rolesCount = await db.query('roles');
@@ -165,13 +196,13 @@ class DatabaseHelper {
         'roleId': 1,
       });
 
-      await db.insert('users', {
-        'firstName': 'Mohammed',
-        'lastName': 'Boudchiche',
-        'email': 'mohammed@ump.com',
-        'password': '1234',
-        'roleId': 2,
-      });
+      // await db.insert('users', {
+      //   'firstName': 'Mohammed',
+      //   'lastName': 'Boudchiche',
+      //   'email': 'mohammed@ump.com',
+      //   'password': '1234',
+      //   'roleId': 2,
+      // });
 
       await db.insert('users', {
         'firstName': 'Sofia',
@@ -192,8 +223,58 @@ class DatabaseHelper {
   }
 
   // ======== GESTION MISE À JOUR DB ========
+  Future<List<Map<String, dynamic>>> getStudentsByGroup(int groupId) async {
+    final db = await database;
+    return await db.query('students',
+        where: 'groupId = ?', whereArgs: [groupId], orderBy: 'lastName');
+  }
 
+  Future<List<Map<String, dynamic>>> getAbsencesBySession(int sessionId) async {
+    final db = await database;
+    return await db
+        .query('absences', where: 'sessionId = ?', whereArgs: [sessionId]);
+  }
+
+  Future<List<Map<String, dynamic>>> getDistinctModules() async {
+    final db = await instance.database;
+    return await db.rawQuery(
+        'SELECT DISTINCT moduleName as name FROM sessions WHERE moduleName IS NOT NULL');
+  }
+
+  Future<int> insertAbsence(Map<String, dynamic> data) async {
+    final db = await database;
+    return await db.insert('absences', data,
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<Map<String, dynamic>> getSessionById(int id) async {
+    final db = await instance.database;
+    final res = await db.query('sessions', where: 'id = ?', whereArgs: [id]);
+    return res.first;
+  }
+
+  Future<List<Map<String, dynamic>>> getSessionsByDate(String date) async {
+    final db = await instance.database;
+    return await db.query('sessions', where: 'date = ?', whereArgs: [date]);
+  }
+
+  Future<List<Map<String, dynamic>>> getSessionsToday() async {
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    return await getSessionsByDate(
+        today); // Appel de la méthode que nous venons d'ajouter
+  }
+
+  Future<List<Map<String, dynamic>>> getGroupsByModuleName(
+      String moduleName) async {
+    final db = await instance.database;
+    return await db.rawQuery('''
+      SELECT DISTINCT groupId as id, groupName as name 
+      FROM sessions 
+      WHERE moduleName = ?
+    ''', [moduleName]);
+  }
   // ==================  ==================
+
 // 🔹 Récupérer la filière assignée à un coordinateur
   Future<Map<String, dynamic>?> getFiliereByCoordinateur(
       int coordinateurId) async {
@@ -401,6 +482,20 @@ class DatabaseHelper {
   }
 
   // ================== MÉTHODES MODULES ==================
+  Future<int> updateProfessorPassword(int id, String newPassword) async {
+    final db = await instance.database;
+    return await db.update(
+      'professors',
+      {'password': newPassword},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getAllAbsences() async {
+    final db = await instance.database;
+    return await db.query('absences');
+  }
 
   // 🔹 Récupérer tous les modules
   Future<List<Map<String, dynamic>>> getModules() async {
@@ -518,7 +613,36 @@ class DatabaseHelper {
 
   Future<int> insertStudent(Map<String, dynamic> student) async {
     final db = await database;
-    return await db.insert('students', student);
+
+    // Créer l'email automatiquement
+    final firstName = student['firstName'] ?? '';
+    final lastName = student['lastName'] ?? '';
+    final massar = student['massar'] ?? '';
+    final email = '${firstName.toLowerCase()}${lastName.toLowerCase()}@ump.com';
+
+    // Insérer dans students
+    final id = await db.insert('students', {
+      'firstName': firstName,
+      'lastName': lastName,
+      'massar': massar,
+      'email': email,
+      'groupId': student['groupId'],
+    });
+
+    // Créer automatiquement le compte utilisateur si pas déjà existant
+    final existing =
+        await db.query('users', where: 'email = ?', whereArgs: [email]);
+    if (existing.isEmpty) {
+      await db.insert('users', {
+        'firstName': firstName,
+        'lastName': lastName,
+        'email': email,
+        'password': massar,
+        'roleId': 1, // rôle Etudiant
+      });
+    }
+
+    return id;
   }
 
   Future<int> updateStudent(int id, Map<String, dynamic> student) async {
@@ -624,5 +748,27 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [studentId],
     );
+  }
+
+  Future<List<Map<String, dynamic>>> getProfesseursWithModules() async {
+    final db = await database;
+
+    final data = await db.rawQuery('''
+    SELECT 
+      u.id AS profId,
+      u.firstName || ' ' || u.lastName AS professeur,
+      m.id AS moduleId,
+      m.name AS module,
+      g.name AS groupe
+    FROM module_professeur mp
+    JOIN users u ON mp.professeurId = u.id
+    JOIN modules m ON mp.moduleId = m.id
+    LEFT JOIN module_groups mg ON m.id = mg.moduleId
+    LEFT JOIN groups g ON mg.groupId = g.id
+    WHERE u.roleId = 2
+    ORDER BY professeur, module
+  ''');
+
+    return data;
   }
 }

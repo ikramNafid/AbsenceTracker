@@ -8,6 +8,7 @@ import 'distribute_students_by_group_page.dart';
 import 'distribute_modules_by_group_page.dart';
 import 'module_list_with_groups_page.dart';
 import 'liste_module_froupe.dart';
+import 'ProfesseursAssignesPage.dart';
 
 class CoordinatorHome extends StatefulWidget {
   final int coordinateurId;
@@ -105,6 +106,12 @@ class _CoordinatorHomeState extends State<CoordinatorHome> {
               Icons.people,
               "Affectation professeurs",
               const AffectProfPage(),
+            ),
+            _drawerItem(
+              context,
+              Icons.list,
+              "Liste des professeurs avec modules assignés",
+              const ProfesseursAssignesPage(),
             ),
             _drawerItem(
               context,
