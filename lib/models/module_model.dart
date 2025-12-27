@@ -1,10 +1,14 @@
 class Module {
   int? id;
   String name;
-  String? semester;
-  int? groupId;
+  String semester;
+  int groupId;
 
-  Module({this.id, required this.name, this.semester, this.groupId});
+  Module(
+      {this.id,
+      required this.name,
+      required this.semester,
+      required this.groupId});
 
   Map<String, dynamic> toMap() {
     return {

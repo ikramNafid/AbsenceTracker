@@ -16,6 +16,10 @@ dependencies:
   csv: ^6.0.0
   path: ^1.8.4
   fl_chart: ^1.1.1
+  table_calendar: ^3.0.9
+  pdf: ^3.10.6
+  printing: ^5.11.0
+  share_plus: ^12.0.1
 
   # Base de données SQLite
   #sqflite: ^2.3.0
@@ -26,6 +30,7 @@ dependencies:
 
   # Cupertino Icons
   cupertino_icons: ^1.0.8
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
