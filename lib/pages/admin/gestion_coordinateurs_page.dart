@@ -4,7 +4,7 @@ import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 
 import '../../database/database_helper.dart';
-import '../../widgets/gestion_page.dart'; // Assurez-vous que le chemin est correct
+import '../../widgets/gestion_page.dart';
 
 class GestionCoordinateursPage extends StatefulWidget {
   const GestionCoordinateursPage({super.key});
@@ -40,9 +40,8 @@ class _GestionCoordinateursPageState extends State<GestionCoordinateursPage> {
     final q = _searchController.text.toLowerCase();
     setState(() {
       _filteredCoordinateurs = _coordinateurs.where((c) {
-        final fullName = '${c['firstName']} ${c['lastName']}'.toLowerCase();
-        final email = (c['email'] ?? '').toLowerCase();
-        return fullName.contains(q) || email.contains(q);
+        return '${c['firstName']} ${c['lastName']}'.toLowerCase().contains(q) ||
+            (c['email'] ?? '').toLowerCase().contains(q);
       }).toList();
     });
   }
@@ -66,29 +65,26 @@ class _GestionCoordinateursPageState extends State<GestionCoordinateursPage> {
         title: Text(
           coord == null ? 'Ajouter Coordinateur' : 'Modifier Coordinateur',
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: firstName,
-                decoration: const InputDecoration(labelText: 'Prénom'),
-              ),
-              TextField(
-                controller: lastName,
-                decoration: const InputDecoration(labelText: 'Nom'),
-              ),
-              TextField(
-                controller: email,
-                decoration: const InputDecoration(labelText: 'Email'),
-              ),
-              TextField(
-                controller: password,
-                decoration: const InputDecoration(labelText: 'Mot de passe'),
-                obscureText: true,
-              ),
-            ],
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: firstName,
+              decoration: const InputDecoration(labelText: 'Prénom'),
+            ),
+            TextField(
+              controller: lastName,
+              decoration: const InputDecoration(labelText: 'Nom'),
+            ),
+            TextField(
+              controller: email,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+            TextField(
+              controller: password,
+              decoration: const InputDecoration(labelText: 'Mot de passe'),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -111,7 +107,7 @@ class _GestionCoordinateursPageState extends State<GestionCoordinateursPage> {
                 await DatabaseHelper.instance.updateUser(coord['id'], data);
               }
 
-              if (mounted) Navigator.pop(context);
+              Navigator.pop(context);
               _fetchCoordinateurs();
             },
             child: const Text('Enregistrer'),
@@ -129,42 +125,37 @@ class _GestionCoordinateursPageState extends State<GestionCoordinateursPage> {
     );
     if (result == null) return;
 
-    try {
-      final file = File(result.files.single.path!);
-      final content = await file.readAsString();
-      final rows =
-          const CsvToListConverter(fieldDelimiter: ',').convert(content);
+    final file = File(result.files.single.path!);
+    final content = await file.readAsString();
 
-      if (rows.isEmpty) return;
+    // ⚡ Utiliser la virgule comme séparateur pour ton CSV
+    final rows = const CsvToListConverter(fieldDelimiter: ',').convert(content);
 
-      final headers = rows.first.map((e) => e.toString().trim()).toList();
-      final requiredColumns = ['firstName', 'lastName', 'email', 'password'];
+    if (rows.isEmpty) return; // fichier vide
+    final headers = rows.first.map((e) => e.toString().trim()).toList();
 
-      for (var col in requiredColumns) {
-        if (!headers.contains(col)) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Colonne manquante dans le CSV : $col')),
-          );
-          return;
-        }
+    final requiredColumns = ['firstName', 'lastName', 'email', 'password'];
+    for (var col in requiredColumns) {
+      if (!headers.contains(col)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Colonne manquante dans le CSV : $col')),
+        );
+        return;
       }
-
-      for (var row in rows.skip(1)) {
-        if (row.length < headers.length) continue;
-        await DatabaseHelper.instance.insertUser({
-          'firstName': row[headers.indexOf('firstName')].toString(),
-          'lastName': row[headers.indexOf('lastName')].toString(),
-          'email': row[headers.indexOf('email')].toString(),
-          'password': row[headers.indexOf('password')].toString(),
-          'roleId': 3, // Coordinateur
-        });
-      }
-      _fetchCoordinateurs();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de l\'importation : $e')),
-      );
     }
+
+    for (var row in rows.skip(1)) {
+      if (row.length < headers.length) continue; // ignorer lignes incomplètes
+      await DatabaseHelper.instance.insertUser({
+        'firstName': row[headers.indexOf('firstName')].toString(),
+        'lastName': row[headers.indexOf('lastName')].toString(),
+        'email': row[headers.indexOf('email')].toString(),
+        'password': row[headers.indexOf('password')].toString(),
+        'roleId': 3, // Coordinateur
+      });
+    }
+
+    _fetchCoordinateurs();
   }
 
   // ================= UI =================
@@ -178,7 +169,7 @@ class _GestionCoordinateursPageState extends State<GestionCoordinateursPage> {
       onImportCSV: _importCSV,
       onAdd: () => _showCoordinateurForm(),
       onEdit: (c) => _showCoordinateurForm(coord: c),
-      onDelete: (id) => _deleteCoordinateur(id),
+      onDelete: _deleteCoordinateur,
     );
   }
 }

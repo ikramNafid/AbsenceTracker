@@ -25,9 +25,7 @@ class _GestionEtudiantsPageState extends State<GestionEtudiantsPage> {
     _searchController.addListener(_onSearch);
   }
 
-  // ================= FETCH =================
   Future<void> _fetchEtudiants() async {
-    // Assurez-vous que getStudents() est défini dans DatabaseHelper
     final data = await DatabaseHelper.instance.getStudents();
     setState(() {
       _etudiants = data;
@@ -35,25 +33,21 @@ class _GestionEtudiantsPageState extends State<GestionEtudiantsPage> {
     });
   }
 
-  // ================= SEARCH =================
   void _onSearch() {
     final q = _searchController.text.toLowerCase();
     setState(() {
       _filteredEtudiants = _etudiants.where((e) {
-        final fullName = '${e['firstName']} ${e['lastName']}'.toLowerCase();
-        final email = (e['email'] ?? '').toLowerCase();
-        return fullName.contains(q) || email.contains(q);
+        return '${e['firstName']} ${e['lastName']}'.toLowerCase().contains(q) ||
+            (e['email'] ?? '').toLowerCase().contains(q);
       }).toList();
     });
   }
 
-  // ================= DELETE =================
   Future<void> _deleteStudent(int id) async {
     await DatabaseHelper.instance.deleteStudent(id);
     _fetchEtudiants();
   }
 
-  // ================= FORM =================
   Future<void> _showStudentForm({Map<String, dynamic>? student}) async {
     final firstName = TextEditingController(text: student?['firstName'] ?? '');
     final lastName = TextEditingController(text: student?['lastName'] ?? '');
@@ -64,24 +58,22 @@ class _GestionEtudiantsPageState extends State<GestionEtudiantsPage> {
       context: context,
       builder: (_) => AlertDialog(
         title: Text(student == null ? 'Ajouter Étudiant' : 'Modifier Étudiant'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                  controller: firstName,
-                  decoration: const InputDecoration(labelText: 'Prénom')),
-              TextField(
-                  controller: lastName,
-                  decoration: const InputDecoration(labelText: 'Nom')),
-              TextField(
-                  controller: email,
-                  decoration: const InputDecoration(labelText: 'Email')),
-              TextField(
-                  controller: massar,
-                  decoration: const InputDecoration(labelText: 'Code Massar')),
-            ],
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+                controller: firstName,
+                decoration: const InputDecoration(labelText: 'Prénom')),
+            TextField(
+                controller: lastName,
+                decoration: const InputDecoration(labelText: 'Nom')),
+            TextField(
+                controller: email,
+                decoration: const InputDecoration(labelText: 'Email')),
+            TextField(
+                controller: massar,
+                decoration: const InputDecoration(labelText: 'Massar')),
+          ],
         ),
         actions: [
           TextButton(
@@ -94,7 +86,7 @@ class _GestionEtudiantsPageState extends State<GestionEtudiantsPage> {
                 'lastName': lastName.text,
                 'email': email.text,
                 'massar': massar.text,
-                'groupId': student?['groupId'], // On garde le groupe actuel
+                'groupId': null,
               };
 
               if (student == null) {
@@ -104,7 +96,7 @@ class _GestionEtudiantsPageState extends State<GestionEtudiantsPage> {
                     .updateStudent(student['id'], data);
               }
 
-              if (mounted) Navigator.pop(context);
+              Navigator.pop(context);
               _fetchEtudiants();
             },
             child: const Text('Enregistrer'),
@@ -114,53 +106,30 @@ class _GestionEtudiantsPageState extends State<GestionEtudiantsPage> {
     );
   }
 
-  // ================= IMPORT CSV =================
   Future<void> _importCSV() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-      );
-      if (result == null) return;
+    final result = await FilePicker.platform
+        .pickFiles(type: FileType.custom, allowedExtensions: ['csv']);
+    if (result == null) return;
 
-      final file = File(result.files.single.path!);
-      final csvString = await file.readAsString();
+    final file = File(result.files.single.path!);
+    final rows = const CsvToListConverter(fieldDelimiter: ';')
+        .convert(await file.readAsString());
 
-      // Vérifiez si votre CSV utilise ',' ou ';'
-      List<List<dynamic>> rows =
-          const CsvToListConverter(fieldDelimiter: ';').convert(csvString);
+    final headers = rows.first.map((e) => e.toString()).toList();
 
-      if (rows.isEmpty) return;
-      final headers = rows.first.map((e) => e.toString().trim()).toList();
-
-      for (var row in rows.skip(1)) {
-        if (row.length < headers.length) continue;
-        await DatabaseHelper.instance.insertStudent({
-          'firstName': row[headers.indexOf('firstName')].toString(),
-          'lastName': row[headers.indexOf('lastName')].toString(),
-          'email': row[headers.indexOf('email')].toString(),
-          'massar': row[headers.indexOf('password')]
-              .toString(), // Souvent stocké dans password au début
-          'groupId': null,
-        });
-      }
-
-      _fetchEtudiants();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Importation réussie ✅')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de l\'import : $e')),
-        );
-      }
+    for (var row in rows.skip(1)) {
+      await DatabaseHelper.instance.insertStudent({
+        'firstName': row[headers.indexOf('firstName')].toString(),
+        'lastName': row[headers.indexOf('lastName')].toString(),
+        'email': row[headers.indexOf('email')].toString(),
+        'massar': row[headers.indexOf('password')].toString(),
+        'groupId': null,
+      });
     }
+
+    _fetchEtudiants();
   }
 
-  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     return GestionPage(
@@ -171,7 +140,7 @@ class _GestionEtudiantsPageState extends State<GestionEtudiantsPage> {
       onImportCSV: _importCSV,
       onAdd: () => _showStudentForm(),
       onEdit: (e) => _showStudentForm(student: e),
-      onDelete: (id) => _deleteStudent(id),
+      onDelete: _deleteStudent,
     );
   }
 }

@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-
-// Remplacez 'absence_tracker' par le nom exact défini dans votre pubspec.yaml
-import 'package:absence_tracker/pages/admin/gestion_utilisateurs_page.dart';
-import 'package:absence_tracker/pages/admin/statistiques.dart';
-import 'package:absence_tracker/pages/admin/settings.dart';
-import 'package:absence_tracker/pages/auth/login_page.dart';
-import 'package:absence_tracker/pages/admin/gestion-fliere_groupes/gestion_academique_home.dart';
+import 'gestion_utilisateurs_page.dart';
+//import 'gestion_filiere_groupe.dart';
+import 'statistiques.dart';
+import 'settings.dart';
+import "../../database/login_page.dart";
+import "../../pages/admin/gestion-fliere_groupes/gestion_academique_home.dart";
 
 class AdminHome extends StatelessWidget {
   const AdminHome({super.key});
 
   static const Color lightBlue = Color(0xFF4A90E2); // 🔵 Bleu clair
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,9 +85,8 @@ class AdminHome extends StatelessWidget {
                   ),
                   _buildActionCard(
                     context,
-                    icon: Icons
-                        .school, // Changé en school pour mieux coller à "Académique"
-                    title: 'Gestion Académique',
+                    icon: Icons.upload_file,
+                    title: 'Gestion des filières et des groupes',
                     color: Colors.orange,
                     onTap: () {
                       Navigator.push(

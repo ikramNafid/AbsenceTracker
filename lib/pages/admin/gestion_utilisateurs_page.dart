@@ -8,6 +8,7 @@ class GestionUtilisateursPage extends StatelessWidget {
 
   static const Color lightBlue = Color(0xFF3B82F6); // bleu principal
   static const Color backgroundGray = Color(0xFFF3F6FB); // fond gris clair
+  static const Color cardWhite = Colors.white;
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +68,7 @@ class GestionUtilisateursPage extends StatelessWidget {
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: lightBlue, width: 1.5),
+          side: BorderSide(color: lightBlue, width: 1.5),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
