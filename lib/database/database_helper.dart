@@ -201,6 +201,29 @@ class DatabaseHelper {
     }
   }
 
+  Future<Map<String, dynamic>?> getStudentProfile(int studentId) async {
+  final db = await database;
+
+  final result = await db.rawQuery('''
+    SELECT 
+      s.firstName,
+      s.lastName,
+      s.email,
+      s.massar,
+      g.name AS groupName,
+      g.filiere
+    FROM students s
+    LEFT JOIN groups g ON s.groupId = g.id
+    WHERE s.id = ?
+  ''', [studentId]);
+
+  if (result.isNotEmpty) {
+    return result.first;
+  }
+  return null;
+}
+
+
   // LOGIN avec rôle
   Future<Map<String, dynamic>?> login(String email, String password) async {
     final db = await database;
