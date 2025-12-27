@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../database/database_helper.dart';
 import '../professor/prof_home.dart';
 import '../coordinator/coordinator_home.dart';
-import '../student/student_home.dart'; // Assurez-vous que ces imports existent
 import '../admin/admin_home.dart'; // Assurez-vous que ces imports existent
+import 'package:absence_tracker/pages/student/student_home.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -43,9 +43,26 @@ class _LoginPageState extends State<LoginPage> {
 
         switch (role) {
           case 1: // Étudiant
+            // On récupère les composants du nom
+            final String fName = user['firstName'] ?? '';
+            final String lName = user['lastName'] ?? '';
+            // On crée le nom complet pour l'affichage
+            final String fullName = "$fName $lName".trim();
+
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const StudentHome()),
+              MaterialPageRoute(
+                builder: (_) => StudentHomePage(
+                  studentId: user['id'],
+                  studentName: fullName.isEmpty ? "Étudiant" : fullName,
+                  groupName: user['groupName'] ?? "Sans Groupe",
+                  isDarkMode: false, // Valeur initiale pour le thème
+                  onThemeChanged: (bool val) {
+                    // Cette fonction sera appelée quand vous changerez le thème dans SettingsPage
+                    print("Nouveau mode sombre : $val");
+                  },
+                ),
+              ),
             );
             break;
           case 2: // Professeur

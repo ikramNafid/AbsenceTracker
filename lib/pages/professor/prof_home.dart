@@ -66,12 +66,6 @@ class _ProfHomeState extends State<ProfHome> {
         title: Text("Bonjour, Mr. $profName"),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadDashboardData,
-          ),
-        ],
       ),
       drawer: _buildDrawer(context),
       body: RefreshIndicator(
@@ -320,15 +314,6 @@ class _ProfHomeState extends State<ProfHome> {
               Navigator.pop(context);
               Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const StatisticsPage()));
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.refresh, color: Colors.redAccent),
-            title: const Text("Réinitialiser les données"),
-            onTap: () {
-              Navigator.pop(context);
-              _resetDatabase(context);
             },
           ),
           const Spacer(),

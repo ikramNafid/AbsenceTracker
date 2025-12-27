@@ -8,6 +8,7 @@ import 'distribute_students_by_group_page.dart';
 import 'distribute_modules_by_group_page.dart';
 import 'module_list_with_groups_page.dart';
 import 'liste_module_froupe.dart';
+import 'package:absence_tracker/pages/auth/login_page.dart';
 
 class CoordinatorHome extends StatefulWidget {
   final int coordinateurId;
@@ -124,7 +125,39 @@ class _CoordinatorHomeState extends State<CoordinatorHome> {
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text("Déconnexion"),
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                // Affiche une boîte de dialogue de confirmation (Optionnel mais recommandé)
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text("Déconnexion"),
+                    content:
+                        const Text("Voulez-vous vraiment vous déconnecter ?"),
+                    actions: [
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.pop(context), // Ferme le dialogue
+                        child: const Text("Annuler"),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red),
+                        onPressed: () {
+                          // Vide l'historique et redirige vers la page de login
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const LoginPage()),
+                            (route) => false,
+                          );
+                        },
+                        child: const Text("Se déconnecter",
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ),

@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:absence_tracker/models/absence_model.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -179,15 +180,35 @@ class DatabaseHelper {
 
   Future<int> insertStudent(Map<String, dynamic> student) async {
     final db = await database;
-    final id = await db.insert('students', student);
-    final email = '${student['firstName'].toString().toLowerCase()}@ump.com';
-    await db.insert('users', {
-      'firstName': student['firstName'],
-      'lastName': student['lastName'],
+
+    // Créer l'email automatiquement
+    final firstName = student['firstName'] ?? '';
+    final lastName = student['lastName'] ?? '';
+    final massar = student['massar'] ?? '';
+    final email = '${firstName.toLowerCase()}${lastName.toLowerCase()}@ump.com';
+
+    // Insérer dans students
+    final id = await db.insert('students', {
+      'firstName': firstName,
+      'lastName': lastName,
+      'massar': massar,
       'email': email,
-      'password': student['massar'],
-      'roleId': 1
+      'groupId': student['groupId'],
     });
+
+    // Créer automatiquement le compte utilisateur si pas déjà existant
+    final existing =
+        await db.query('users', where: 'email = ?', whereArgs: [email]);
+    if (existing.isEmpty) {
+      await db.insert('users', {
+        'firstName': firstName,
+        'lastName': lastName,
+        'email': email,
+        'password': massar,
+        'roleId': 1, // rôle Etudiant
+      });
+    }
+
     return id;
   }
 
@@ -200,6 +221,17 @@ class DatabaseHelper {
   Future<int> deleteStudent(int id) async {
     final db = await database;
     return await db.delete('students', where: 'id = ?', whereArgs: [id]);
+  }
+// Dans le fichier database/database_helper.dart
+
+  Future<int> updateStudentPassword(int studentId, String newPassword) async {
+    final db = await instance.database;
+    return await db.update(
+      'students', // Assurez-vous que le nom de votre table est bien 'students'
+      {'password': newPassword},
+      where: 'id = ?',
+      whereArgs: [studentId],
+    );
   }
 
   Future<void> assignFiliereToCoordinateur(
@@ -604,5 +636,66 @@ class DatabaseHelper {
     JOIN modules m ON sess.moduleId = m.id
     ORDER BY sess.date DESC
   ''');
+  }
+
+  Future<Map<String, dynamic>?> getStudentProfile(int studentId) async {
+    final db = await database;
+
+    final result = await db.rawQuery('''
+    SELECT 
+      s.firstName,
+      s.lastName,
+      s.email,
+      s.massar,
+      g.name AS groupName,
+      g.filiere
+    FROM students s
+    LEFT JOIN groups g ON s.groupId = g.id
+    WHERE s.id = ?
+  ''', [studentId]);
+
+    if (result.isNotEmpty) {
+      return result.first;
+    }
+    return null;
+  }
+
+  Future<void> markStudentPresent(int studentId, int sessionId) async {
+    final db = await database;
+
+    await db.insert(
+      'absences',
+      {
+        'studentId': studentId,
+        'sessionId': sessionId,
+        'status': 'present',
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // Dans lib/database/database_helper.dart
+
+  Future<List<Absence>> getAbsencesByStudent(int studentId) async {
+    final db = await instance.database; // Ici 'database' est reconnu
+
+    final result = await db.rawQuery('''
+    SELECT 
+      absences.id,
+      absences.studentId,
+      students.name AS studentName,
+      students.groupName AS groupName,
+      modules.name AS moduleName,
+      sessions.date,
+      absences.status
+    FROM absences
+    INNER JOIN students ON absences.studentId = students.id
+    INNER JOIN sessions ON absences.sessionId = sessions.id
+    INNER JOIN modules ON sessions.moduleId = modules.id
+    WHERE absences.studentId = ?
+    ORDER BY sessions.date DESC
+  ''', [studentId]);
+
+    return result.map((row) => Absence.fromMap(row)).toList();
   }
 }
