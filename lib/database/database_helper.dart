@@ -17,14 +17,15 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    // 🔹 Supprimer l’ancienne DB pour repartir à zéro (seulement en développement)
-    await deleteDatabase(path);
+    // Ne jamais supprimer la DB en production
+    // 🔹 Décommenter uniquement si tu veux réinitialiser la DB volontairement
+    // await deleteDatabase(path);
 
     return await openDatabase(
       path,
-      version: 8, // ✅ OBLIGATOIRE
+      version: 8, // obligatoire
       onCreate: _createDB,
-      // onUpgrade: _onUpgrade,
+      //onUpgrade: _onUpgrade, // si tu veux gérer les migrations
     );
   }
 
