@@ -4,6 +4,8 @@ import 'groupe_page.dart';
 import 'affectation_page.dart';
 import 'coordinateur_filiere_page.dart';
 import "../../../database/database_helper.dart";
+import 'repartition.dart';
+import 'liste_etudiants_par_filieres.dart';
 
 class GestionAcademiqueHome extends StatefulWidget {
   const GestionAcademiqueHome({super.key});
@@ -99,8 +101,8 @@ class _GestionAcademiqueHomeState extends State<GestionAcademiqueHome> {
                         MaterialPageRoute(builder: (_) => const GroupePage()))
                     .then((_) => _loadCounts());
               }),
-              _buildDrawerItem(Icons.assignment, 'Affectation des filières',
-                  () {
+              _buildDrawerItem(Icons.assignment,
+                  'Affectation des filières aux coordinateurs', () {
                 Navigator.pop(context);
                 Navigator.push(
                         context,
@@ -114,6 +116,24 @@ class _GestionAcademiqueHomeState extends State<GestionAcademiqueHome> {
                         context,
                         MaterialPageRoute(
                             builder: (_) => const CoordinateurFilierePage()))
+                    .then((_) => _loadCounts());
+              }),
+              _buildDrawerItem(
+                  Icons.school, 'Répartition des étudiants par filière', () {
+                Navigator.pop(context);
+                Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const RepartitionPage()))
+                    .then((_) => _loadCounts());
+              }),
+              _buildDrawerItem(Icons.group, 'Liste des étudiants par filieres',
+                  () {
+                Navigator.pop(context);
+                Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ListeEtudiantsParFilieres()))
                     .then((_) => _loadCounts());
               }),
               const Divider(

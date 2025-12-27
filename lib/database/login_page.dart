@@ -46,34 +46,37 @@ class _LoginPageState extends State<LoginPage> {
     final int role = user['roleId'];
 
     switch (role) {
-      case 1:
+      case 1: // Étudiant
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const StudentHome()),
         );
         break;
-      case 2:
+      case 2: // Professeur
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const ProfHome()),
         );
         break;
-      case 3:
+      case 3: // Coordinateur
+        final coordinateurId = user['id']; // Récupération de l'ID
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const CoordinatorHome()),
+          MaterialPageRoute(
+            builder: (_) => CoordinatorHome(coordinateurId: coordinateurId),
+          ),
         );
         break;
-      case 4:
+      case 4: // Admin
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const AdminHome()),
         );
         break;
       default:
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Rôle inconnu')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Rôle inconnu')),
+        );
     }
   }
 
