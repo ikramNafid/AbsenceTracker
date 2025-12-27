@@ -1,257 +1,177 @@
-// import 'package:flutter/material.dart';
-// import "../../database/database_helper.dart";
-// import 'dart:io';
-// import 'package:csv/csv.dart';
-// import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:csv/csv.dart';
+import 'package:file_picker/file_picker.dart';
 
-// class GestionEtudiantsPage extends StatefulWidget {
-//   const GestionEtudiantsPage({super.key});
+import '../../database/database_helper.dart';
+import '../../widgets/gestion_page.dart';
 
-//   @override
-//   State<GestionEtudiantsPage> createState() => _GestionEtudiantsPageState();
-// }
+class GestionEtudiantsPage extends StatefulWidget {
+  const GestionEtudiantsPage({super.key});
 
-// class _GestionEtudiantsPageState extends State<GestionEtudiantsPage> {
-//   List<Map<String, dynamic>> _etudiants = [];
-//   List<Map<String, dynamic>> _filteredEtudiants = [];
-//   final TextEditingController _searchController = TextEditingController();
+  @override
+  State<GestionEtudiantsPage> createState() => _GestionEtudiantsPageState();
+}
 
-//   @override
-//   void initState() {
-//     super.initState();
-//     _fetchEtudiants();
-//     _searchController.addListener(_onSearch);
-//   }
+class _GestionEtudiantsPageState extends State<GestionEtudiantsPage> {
+  List<Map<String, dynamic>> _etudiants = [];
+  List<Map<String, dynamic>> _filteredEtudiants = [];
+  final TextEditingController _searchController = TextEditingController();
 
-//   Future<void> _fetchEtudiants() async {
-//     final students = await DatabaseHelper.instance.getStudents();
-//     setState(() {
-//       _etudiants = students;
-//       _filteredEtudiants = students;
-//     });
-//   }
+  @override
+  void initState() {
+    super.initState();
+    _fetchEtudiants();
+    _searchController.addListener(_onSearch);
+  }
 
-//   void _onSearch() {
-//     final query = _searchController.text.toLowerCase();
-//     setState(() {
-//       _filteredEtudiants = _etudiants.where((etudiant) {
-//         final fullName =
-//             '${etudiant['firstName']} ${etudiant['lastName']}'.toLowerCase();
-//         final email = etudiant['email']?.toLowerCase() ?? '';
-//         return fullName.contains(query) || email.contains(query);
-//       }).toList();
-//     });
-//   }
+  // ================= FETCH =================
+  Future<void> _fetchEtudiants() async {
+    // Assurez-vous que getStudents() est défini dans DatabaseHelper
+    final data = await DatabaseHelper.instance.getStudents();
+    setState(() {
+      _etudiants = data;
+      _filteredEtudiants = data;
+    });
+  }
 
-//   Future<void> _deleteStudent(int id) async {
-//     await DatabaseHelper.instance.deleteStudent(id);
-//     _fetchEtudiants();
-//   }
+  // ================= SEARCH =================
+  void _onSearch() {
+    final q = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredEtudiants = _etudiants.where((e) {
+        final fullName = '${e['firstName']} ${e['lastName']}'.toLowerCase();
+        final email = (e['email'] ?? '').toLowerCase();
+        return fullName.contains(q) || email.contains(q);
+      }).toList();
+    });
+  }
 
-//   Future<void> _showStudentForm({Map<String, dynamic>? student}) async {
-//     final firstNameController =
-//         TextEditingController(text: student?['firstName'] ?? '');
-//     final lastNameController =
-//         TextEditingController(text: student?['lastName'] ?? '');
-//     final emailController =
-//         TextEditingController(text: student?['email'] ?? '');
-//     final massarController =
-//         TextEditingController(text: student?['massar'] ?? '');
+  // ================= DELETE =================
+  Future<void> _deleteStudent(int id) async {
+    await DatabaseHelper.instance.deleteStudent(id);
+    _fetchEtudiants();
+  }
 
-//     await showDialog(
-//       context: context,
-//       builder: (_) => AlertDialog(
-//         title: Text(student == null ? 'Ajouter Étudiant' : 'Modifier Étudiant'),
-//         content: SingleChildScrollView(
-//           child: Column(
-//             children: [
-//               TextField(
-//                 controller: firstNameController,
-//                 decoration: const InputDecoration(labelText: 'Prénom'),
-//               ),
-//               TextField(
-//                 controller: lastNameController,
-//                 decoration: const InputDecoration(labelText: 'Nom'),
-//               ),
-//               TextField(
-//                 controller: emailController,
-//                 decoration: const InputDecoration(labelText: 'Email'),
-//               ),
-//               TextField(
-//                 controller: massarController,
-//                 decoration: const InputDecoration(labelText: 'Massar'),
-//               ),
-//             ],
-//           ),
-//         ),
-//         actions: [
-//           TextButton(
-//             onPressed: () => Navigator.pop(context),
-//             child: const Text('Annuler'),
-//           ),
-//           ElevatedButton(
-//             onPressed: () async {
-//               final data = {
-//                 'firstName': firstNameController.text,
-//                 'lastName': lastNameController.text,
-//                 'email': emailController.text,
-//                 'massar': massarController.text,
-//                 'groupId': null,
-//               };
-//               if (student == null) {
-//                 await DatabaseHelper.instance.insertStudent(data);
-//               } else {
-//                 await DatabaseHelper.instance
-//                     .updateStudent(student['id'], data);
-//               }
-//               Navigator.pop(context);
-//               _fetchEtudiants();
-//             },
-//             child: const Text('Enregistrer'),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
+  // ================= FORM =================
+  Future<void> _showStudentForm({Map<String, dynamic>? student}) async {
+    final firstName = TextEditingController(text: student?['firstName'] ?? '');
+    final lastName = TextEditingController(text: student?['lastName'] ?? '');
+    final email = TextEditingController(text: student?['email'] ?? '');
+    final massar = TextEditingController(text: student?['massar'] ?? '');
 
-//   // ================= IMPORT CSV =================
-//   Future<void> _importCSV() async {
-//     try {
-//       FilePickerResult? result = await FilePicker.platform.pickFiles(
-//         type: FileType.custom,
-//         allowedExtensions: ['csv'],
-//       );
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(student == null ? 'Ajouter Étudiant' : 'Modifier Étudiant'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                  controller: firstName,
+                  decoration: const InputDecoration(labelText: 'Prénom')),
+              TextField(
+                  controller: lastName,
+                  decoration: const InputDecoration(labelText: 'Nom')),
+              TextField(
+                  controller: email,
+                  decoration: const InputDecoration(labelText: 'Email')),
+              TextField(
+                  controller: massar,
+                  decoration: const InputDecoration(labelText: 'Code Massar')),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler')),
+          ElevatedButton(
+            onPressed: () async {
+              final data = {
+                'firstName': firstName.text,
+                'lastName': lastName.text,
+                'email': email.text,
+                'massar': massar.text,
+                'groupId': student?['groupId'], // On garde le groupe actuel
+              };
 
-//       if (result == null) return;
+              if (student == null) {
+                await DatabaseHelper.instance.insertStudent(data);
+              } else {
+                await DatabaseHelper.instance
+                    .updateStudent(student['id'], data);
+              }
 
-//       final file = File(result.files.single.path!);
-//       final csvString = await file.readAsString();
+              if (mounted) Navigator.pop(context);
+              _fetchEtudiants();
+            },
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
+  }
 
-//       List<List<dynamic>> rows =
-//           const CsvToListConverter(fieldDelimiter: ';').convert(csvString);
+  // ================= IMPORT CSV =================
+  Future<void> _importCSV() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+      );
+      if (result == null) return;
 
-//       final headers = rows.first.map((e) => e.toString()).toList();
-//       final dataRows = rows.sublist(1);
+      final file = File(result.files.single.path!);
+      final csvString = await file.readAsString();
 
-//       int count = 0;
+      // Vérifiez si votre CSV utilise ',' ou ';'
+      List<List<dynamic>> rows =
+          const CsvToListConverter(fieldDelimiter: ';').convert(csvString);
 
-//       for (var row in dataRows) {
-//         final student = {
-//           'firstName': row[headers.indexOf('firstName')].toString(),
-//           'lastName': row[headers.indexOf('lastName')].toString(),
-//           'email': row[headers.indexOf('email')].toString(),
-//           'massar': row[headers.indexOf('password')].toString(),
-//           'groupId': null,
-//         };
+      if (rows.isEmpty) return;
+      final headers = rows.first.map((e) => e.toString().trim()).toList();
 
-//         await DatabaseHelper.instance.insertStudent(student);
-//         count++;
-//       }
+      for (var row in rows.skip(1)) {
+        if (row.length < headers.length) continue;
+        await DatabaseHelper.instance.insertStudent({
+          'firstName': row[headers.indexOf('firstName')].toString(),
+          'lastName': row[headers.indexOf('lastName')].toString(),
+          'email': row[headers.indexOf('email')].toString(),
+          'massar': row[headers.indexOf('password')]
+              .toString(), // Souvent stocké dans password au début
+          'groupId': null,
+        });
+      }
 
-//       _fetchEtudiants();
+      _fetchEtudiants();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Importation réussie ✅')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de l\'import : $e')),
+        );
+      }
+    }
+  }
 
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(content: Text('Import réussi ✅ $count étudiants ajoutés')),
-//       );
-//     } catch (e) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(content: Text('Erreur import CSV : $e')),
-//       );
-//     }
-//   }
-//   // =================================================
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         backgroundColor: const Color(0xFF4A90E2), // 🔵 Bleu clair
-//         elevation: 2,
-//         title: const Text(
-//           'Gestion des étudiants',
-//           style: TextStyle(
-//             color: Colors.white, // ⚪ Titre blanc
-//             fontWeight: FontWeight.bold,
-//             fontSize: 20,
-//           ),
-//         ),
-//         iconTheme: const IconThemeData(color: Colors.white),
-//         actions: [
-//           IconButton(
-//             icon: const Icon(Icons.upload),
-//             tooltip: 'Importer CSV',
-//             onPressed: _importCSV,
-//           ),
-//         ],
-//       ),
-//       body: Padding(
-//         padding: const EdgeInsets.all(16.0),
-//         child: Column(
-//           children: [
-//             TextField(
-//               controller: _searchController,
-//               decoration: InputDecoration(
-//                 prefixIcon: const Icon(Icons.search),
-//                 hintText: 'Rechercher un étudiant...',
-//                 border: OutlineInputBorder(
-//                   borderRadius: BorderRadius.circular(12),
-//                 ),
-//               ),
-//             ),
-//             const SizedBox(height: 16),
-//             Expanded(
-//               child: _filteredEtudiants.isEmpty
-//                   ? const Center(child: Text('Aucun étudiant trouvé'))
-//                   : ListView.builder(
-//                       itemCount: _filteredEtudiants.length,
-//                       itemBuilder: (context, index) {
-//                         final etudiant = _filteredEtudiants[index];
-//                         return Card(
-//                           margin: const EdgeInsets.symmetric(vertical: 6),
-//                           child: ListTile(
-//                             title: Text(
-//                                 '${etudiant['firstName']} ${etudiant['lastName']}'),
-//                             subtitle: Text(etudiant['email'] ?? ''),
-//                             trailing: Row(
-//                               mainAxisSize: MainAxisSize.min,
-//                               children: [
-//                                 IconButton(
-//                                   icon: const Icon(Icons.edit,
-//                                       color: Colors.orange),
-//                                   onPressed: () =>
-//                                       _showStudentForm(student: etudiant),
-//                                 ),
-//                                 IconButton(
-//                                   icon: const Icon(Icons.delete,
-//                                       color: Colors.red),
-//                                   onPressed: () =>
-//                                       _deleteStudent(etudiant['id']),
-//                                 ),
-//                               ],
-//                             ),
-//                           ),
-//                         );
-//                       },
-//                     ),
-//             ),
-//             SizedBox(
-//               width: double.infinity,
-//               child: ElevatedButton.icon(
-//                 icon: const Icon(Icons.add),
-//                 label: const Text('Ajouter un étudiant'),
-//                 onPressed: () => _showStudentForm(),
-//                 style: ElevatedButton.styleFrom(
-//                   backgroundColor: const Color(0xFF4A90E2), // même bleu clair
-//                   padding: const EdgeInsets.symmetric(vertical: 16),
-//                   shape: RoundedRectangleBorder(
-//                     borderRadius: BorderRadius.circular(12),
-//                   ),
-//                 ),
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
+  // ================= UI =================
+  @override
+  Widget build(BuildContext context) {
+    return GestionPage(
+      title: 'Gestion des étudiants',
+      searchHint: 'Rechercher un étudiant...',
+      searchController: _searchController,
+      items: _filteredEtudiants,
+      onImportCSV: _importCSV,
+      onAdd: () => _showStudentForm(),
+      onEdit: (e) => _showStudentForm(student: e),
+      onDelete: (id) => _deleteStudent(id),
+    );
+  }
+}

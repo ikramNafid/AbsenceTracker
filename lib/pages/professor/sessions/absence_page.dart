@@ -29,14 +29,24 @@ class _AbsencePageState extends State<AbsencePage> {
   }
 
   void _loadData() async {
-    // 1. Charger les étudiants du groupe lié à cette séance
-    // On doit d'abord trouver le groupId de la session
+    // 1. Charger les détails de la session
     final session =
         await DatabaseHelper.instance.getSessionById(widget.sessionId);
-    final studentData =
-        await DatabaseHelper.instance.getStudentsByGroup(session['groupId']);
 
-    // 2. Charger les absences déjà enregistrées pour cette séance (si on veut modifier)
+    // Vérification de sécurité : si la session est null, on arrête ou on affiche une erreur
+    if (session == null) {
+      setState(() => isLoading = false);
+      return;
+    }
+
+    // Utilisation sécurisée après le check de nullité
+    final int groupId = session['groupId'];
+
+    // 2. Charger les étudiants du groupe
+    final studentData =
+        await DatabaseHelper.instance.getStudentsByGroup(groupId);
+
+    // 3. Charger les absences déjà enregistrées
     final existingAbsences =
         await DatabaseHelper.instance.getAbsencesBySession(widget.sessionId);
 

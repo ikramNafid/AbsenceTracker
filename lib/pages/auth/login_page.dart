@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../database/database_helper.dart';
 import '../professor/prof_home.dart';
-// Importez vos autres homes ici (StudentHome, etc.) si elles existent
+import '../coordinator/coordinator_home.dart';
+import '../student/student_home.dart'; // Assurez-vous que ces imports existent
+import '../admin/admin_home.dart'; // Assurez-vous que ces imports existent
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -28,32 +30,59 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _isLoading = true);
 
-    // Appel à la base de données
-    final user = await DatabaseHelper.instance.loginProfessor(email, password);
+    try {
+      // Appel à la base de données (méthode générique pour tous les utilisateurs)
+      final user = await DatabaseHelper.instance.loginUser(email, password);
 
-    if (!mounted) return;
-    setState(() => _isLoading = false);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    if (user != null) {
-      final int role = user['role']; // Récupère le rôle (2 pour Prof)
+      if (user != null) {
+        // On utilise 'roleId' pour la redirection
+        final int role = user['roleId'];
 
-      if (role == 2) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ProfHome(professorData: user),
-          ),
-        );
+        switch (role) {
+          case 1: // Étudiant
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const StudentHome()),
+            );
+            break;
+          case 2: // Professeur
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => ProfHome(professorData: user)),
+            );
+            break;
+          case 3: // Coordinateur
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CoordinatorHome(coordinateurId: user['id']),
+              ),
+            );
+            break;
+          case 4: // Admin
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminHome()),
+            );
+            break;
+          default:
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('Rôle inconnu ou accès non autorisé')),
+            );
+        }
       } else {
-        // Gérer les autres rôles (étudiants, admin) ici plus tard
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text("Accès réservé aux professeurs pour le moment")),
+          const SnackBar(content: Text("Email ou mot de passe incorrect")),
         );
       }
-    } else {
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email ou mot de passe incorrect")),
+        SnackBar(content: Text("Erreur de connexion : $e")),
       );
     }
   }
@@ -61,103 +90,127 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 60),
-            // En-tête Institutionnel
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Text(
-                'École nationale de l\'intelligence artificielle et du digital - BERKANE',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.indigo,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Carte de Connexion
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Card(
-                elevation: 6,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.school, size: 80, color: Colors.indigo),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Absence Tracker',
-                        style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.indigo),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text('Connexion',
-                          style: TextStyle(fontSize: 18, color: Colors.grey)),
-                      const SizedBox(height: 32),
-                      // Champ Email
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: const Icon(Icons.email),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Champ Mot de passe
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Mot de passe',
-                          prefixIcon: const Icon(Icons.lock),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      // Bouton Se Connecter
-                      SizedBox(
-                        width: double.infinity,
-                        height: 55,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _handleLogin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.indigo,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: _isLoading
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white)
-                              : const Text(
-                                  'Se connecter',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                        ),
-                      ),
-                    ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF4A90E2), Color(0xFF1E3A8A)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                const Text(
+                  'École Nationale de l\'Intelligence Artificielle et du Digital - BERKANE',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
-              ),
+                const SizedBox(height: 30),
+                Card(
+                  elevation: 10,
+                  shadowColor: Colors.black38,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Colors.indigo,
+                          child:
+                              Icon(Icons.school, size: 40, color: Colors.white),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Absence Tracker',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.indigo,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Connexion',
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 32),
+                        TextField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: const Icon(Icons.email),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          decoration: InputDecoration(
+                            labelText: 'Mot de passe',
+                            prefixIcon: const Icon(Icons.lock),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 55,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _handleLogin,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.indigo,
+                              foregroundColor: Colors.white,
+                              elevation: 5,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: _isLoading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white)
+                                : const Text(
+                                    'Se connecter',
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          "© 2025 ENIAD BERKANE",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
