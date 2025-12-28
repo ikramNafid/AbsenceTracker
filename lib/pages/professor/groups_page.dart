@@ -1,110 +1,101 @@
 import 'package:flutter/material.dart';
-import '../../../database/database_helper.dart';
-import 'students_page.dart';
+import 'students_by_group_page.dart';
 
-class GroupsPage extends StatefulWidget {
+class GroupsPage extends StatelessWidget {
   final String moduleName;
-  const GroupsPage({super.key, required this.moduleName});
+  final List<Map<String, dynamic>> groups;
 
-  @override
-  State<GroupsPage> createState() => _GroupsPageState();
-}
-
-// ... (imports existants)
-
-class _GroupsPageState extends State<GroupsPage> {
-  List<Map<String, dynamic>> groups = [];
-  List<Map<String, dynamic>> filteredGroups = [];
-  TextEditingController searchController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadGroups();
-  }
-
-  void _loadGroups() async {
-    // Récupère les groupes liés spécifiquement à ce module
-    final data =
-        await DatabaseHelper.instance.getGroupsByModuleName(widget.moduleName);
-    setState(() {
-      groups = data;
-      filteredGroups = data; // Initialiser aussi la liste filtrée
-    });
-  }
-
-  void _filterGroups(String query) {
-    setState(() {
-      filteredGroups = groups
-          .where((g) =>
-              g['name'].toString().toLowerCase().contains(query.toLowerCase()))
-          .toList();
-    });
-  }
+  const GroupsPage({super.key, required this.moduleName, required this.groups});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text('Groupes : ${widget.moduleName}'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        title: Text('Groupes du module $moduleName'),
+        centerTitle: true,
+        backgroundColor: Colors.blue.shade800,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: TextField(
-              controller: searchController,
-              onChanged: _filterGroups,
-              decoration: InputDecoration(
-                labelText: 'Rechercher un groupe',
-                prefixIcon: const Icon(Icons.group),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      body: groups.isEmpty
+          ? const Center(
+              child: Text(
+                'Aucun groupe disponible',
+                style: TextStyle(fontSize: 18, color: Colors.grey),
               ),
-            ),
-          ),
-          Expanded(
-            child: filteredGroups.isEmpty
-                ? const Center(
-                    child: Text("Aucun groupe trouvé pour ce module"))
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    itemCount: filteredGroups.length,
-                    itemBuilder: (context, index) {
-                      final group = filteredGroups[index];
-                      return Card(
-                        elevation: 2,
-                        margin: const EdgeInsets.only(bottom: 10),
-                        child: ListTile(
-                          leading:
-                              const CircleAvatar(child: Icon(Icons.people)),
-                          title: Text(group['name'],
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle:
-                              const Text("Cliquez pour voir les étudiants"),
-                          trailing:
-                              const Icon(Icons.arrow_forward_ios, size: 16),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => StudentsPage(
-                                  groupId: group['id'],
-                                  groupName: group['name'],
-                                ),
-                              ),
-                            );
-                          },
+            )
+          : Padding(
+              padding: const EdgeInsets.all(16),
+              child: GridView.builder(
+                itemCount: groups.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 1.1,
+                ),
+                itemBuilder: (context, index) {
+                  final group = groups[index];
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () async {
+                      // Naviguer vers la page des étudiants
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => StudentsByGroupPage(
+                            groupId: group['id'],
+                            groupName: group['name'],
+                          ),
                         ),
                       );
                     },
-                  ),
-          ),
-        ],
-      ),
+                    child: Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      elevation: 4,
+                      shadowColor: Colors.grey.shade400,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          gradient: LinearGradient(
+                            colors: [Colors.white, Colors.blue.shade50],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.group,
+                                size: 50, color: Colors.blue.shade700),
+                            const SizedBox(height: 12),
+                            Text(
+                              group['name'],
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            if (group['studentsCount'] != null)
+                              Text(
+                                '${group['studentsCount']} étudiants',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

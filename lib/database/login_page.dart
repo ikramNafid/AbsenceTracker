@@ -49,9 +49,10 @@ class _LoginPageState extends State<LoginPage> {
       case 1: // Étudiant
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const StudentHome()),
+          MaterialPageRoute(builder: (_) => StudentHome(studentData: user)),
         );
         break;
+
       case 2: // Professeur
         Navigator.pushReplacement(
           context,

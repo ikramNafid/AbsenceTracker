@@ -21,23 +21,36 @@ class _ProfesseursAssignesPageState extends State<ProfesseursAssignesPage> {
 
   Future<void> _loadData() async {
     final res = await DatabaseHelper.instance.getProfesseursWithModules();
+
+    // Grouper par professeur
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
+    for (var row in res) {
+      final prof = row['professeur'] ?? '';
+      grouped.putIfAbsent(prof, () => []);
+      grouped[prof]!.add(row);
+    }
+
+    // Convertir en liste pour DataTable
+    List<Map<String, dynamic>> groupedList = [];
+    grouped.forEach((prof, modules) {
+      groupedList.add({
+        'professeur': prof,
+        'modules': modules
+            .map((m) =>
+                m['module']! +
+                (m['groupe'] != null ? ' (Groupe: ${m['groupe']})' : ''))
+            .join('\n'),
+      });
+    });
+
     setState(() {
-      data = res;
+      data = groupedList;
       isLoading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // 🔹 Grouper par professeur
-    final Map<String, List<Map<String, dynamic>>> grouped = {};
-
-    for (var row in data) {
-      final prof = row['professeur'];
-      grouped.putIfAbsent(prof, () => []);
-      grouped[prof]!.add(row);
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Professeurs & Modules assignés"),
@@ -45,44 +58,58 @@ class _ProfesseursAssignesPageState extends State<ProfesseursAssignesPage> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : grouped.isEmpty
-              ? const Center(
-                  child: Text("Aucune affectation trouvée"),
-                )
-              : ListView(
-                  children: grouped.entries.map((entry) {
-                    final prof = entry.key;
-                    final modules = entry.value;
-
-                    return Card(
-                      margin: const EdgeInsets.all(12),
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              prof,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+          : data.isEmpty
+              ? const Center(child: Text("Aucune affectation trouvée"))
+              : SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    headingRowColor: MaterialStateProperty.all(
+                        Colors.blueGrey.shade50), // fond header
+                    headingTextStyle: const TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.black87),
+                    dataRowHeight: 70, // ↑ hauteur globale des lignes
+                    columnSpacing: 40,
+                    columns: const [
+                      DataColumn(
+                        label: Text('Professeur'),
+                      ),
+                      DataColumn(
+                        label: Text('Modules Assignés'),
+                      ),
+                    ],
+                    rows: List.generate(data.length, (index) {
+                      final row = data[index];
+                      final isEven = index % 2 == 0;
+                      return DataRow(
+                        color: MaterialStateProperty.all(
+                            isEven ? Colors.grey.shade100 : Colors.white),
+                        cells: [
+                          DataCell(
+                            Container(
+                              height: 60, // ↑ hauteur cellule
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                row['professeur'] ?? '',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600, fontSize: 16),
                               ),
                             ),
-                            const Divider(),
-                            ...modules.map((m) => Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 4),
-                                  child: Text(
-                                    "• ${m['module']} "
-                                    "${m['groupe'] != null ? '(Groupe : ${m['groupe']})' : ''}",
-                                  ),
-                                )),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                          ),
+                          DataCell(
+                            Container(
+                              height: 60, // ↑ hauteur cellule
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                row['modules'] ?? '',
+                                style: const TextStyle(
+                                    color: Colors.black87, fontSize: 15),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                  ),
                 ),
     );
   }

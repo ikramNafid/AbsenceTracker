@@ -9,6 +9,8 @@ import 'distribute_modules_by_group_page.dart';
 import 'module_list_with_groups_page.dart';
 import 'liste_module_froupe.dart';
 import 'ProfesseursAssignesPage.dart';
+import "../../database/login_page.dart";
+import "gestion_session.dart";
 
 class CoordinatorHome extends StatefulWidget {
   final int coordinateurId;
@@ -22,7 +24,6 @@ class CoordinatorHome extends StatefulWidget {
 
 class _CoordinatorHomeState extends State<CoordinatorHome> {
   int studentsCount = 0;
-  int professorsCount = 0;
   Map<String, dynamic>? filiere;
 
   @override
@@ -37,10 +38,8 @@ class _CoordinatorHomeState extends State<CoordinatorHome> {
 
     if (filiere != null) {
       final students = await db.getStudentsByFiliere(filiere!['id']);
-      final professors = await db.getProfessorsByFiliere(filiere!['id']);
       setState(() {
         studentsCount = students.length;
-        professorsCount = professors.length;
       });
     }
   }
@@ -48,116 +47,224 @@ class _CoordinatorHomeState extends State<CoordinatorHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F9),
+      backgroundColor: const Color(0xFFF2F7FF),
       appBar: AppBar(
         title: const Text("Espace Coordinateur"),
         centerTitle: true,
-        backgroundColor: const Color(0xFF0D47A1),
+        backgroundColor: const Color(0xFF1E3A8A),
+        elevation: 4,
       ),
-      drawer: Drawer(
-        child: ListView(
-          children: [
-            UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(color: Color(0xFF0D47A1)),
-              accountName: Text(
-                filiere?['nom'] ?? "Filière non assignée",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              accountEmail: const Text("Coordinateur"),
-              currentAccountPicture: const CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(Icons.school, size: 34, color: Color(0xFF0D47A1)),
-              ),
-            ),
-            _drawerItem(
-                context, Icons.dashboard, "Tableau de bord", this.widget),
-            _drawerItem(
-              context,
-              Icons.list,
-              "Gestion des modéles de IRSI",
-              ModuleListWithGroupsPage(filiereId: filiere?['id'] ?? 0),
-            ),
-            _drawerItem(
-              context,
-              Icons.list,
-              "Liste des modéles avec groupes",
-              const ListeModuleGroupe(),
-            ),
-            _drawerItem(
-              context,
-              Icons.list,
-              "Répartition des modéles par groupe",
-              DistributeModulesByGroupPage(filiereId: filiere?['id'] ?? 0),
-            ),
-            _drawerItem(
-              context,
-              Icons.bar_chart,
-              "Taux d'absences",
-              const AbsenceRatePage(),
-            ),
-            _drawerItem(
-              context,
-              Icons.warning_amber,
-              "Alertes absences",
-              const AlertAbsencePage(),
-            ),
-            _drawerItem(
-              context,
-              Icons.people,
-              "Affectation professeurs",
-              const AffectProfPage(),
-            ),
-            _drawerItem(
-              context,
-              Icons.list,
-              "Liste des professeurs avec modules assignés",
-              const ProfesseursAssignesPage(),
-            ),
-            _drawerItem(
-              context,
-              Icons.school,
-              "Étudiants assignés",
-              AssignedStudentsPage(filiereId: filiere?['id'] ?? 0),
-            ),
-            _drawerItem(
-              context,
-              Icons.group,
-              "Répartition des étudiants par groupe",
-              DistributeStudentsByGroupPage(
-                filiereId: filiere?['id'] ?? 0,
-              ),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text("Déconnexion"),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
-        ),
-      ),
+      drawer: _buildDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Tableau de bord",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0D47A1),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text("Filière : ${filiere?['nom'] ?? "Non assignée"}"),
-            const SizedBox(height: 24),
-            _statCard("Étudiants", studentsCount.toString(), Icons.school,
-                Colors.blue),
-            _statCard("Professeurs", professorsCount.toString(), Icons.person,
-                Colors.deepPurple),
+            _buildWelcomeHeader(),
+            const SizedBox(height: 30),
+            _buildStudentsCard(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Bienvenue, Coordinateur !",
+            style: TextStyle(
+                color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Filière : ${filiere?['nom'] ?? "Non assignée"}",
+            style: TextStyle(color: Colors.white70, fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStudentsCard() {
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shadowColor: Colors.blue.shade100,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blue.shade50, Colors.blue.shade100],
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 36,
+              backgroundColor: Colors.blue.withOpacity(0.15),
+              child: Icon(Icons.school, color: Colors.blue.shade700, size: 36),
+            ),
+            const SizedBox(width: 24),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Nombre d'étudiants",
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue.shade800),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  studentsCount.toString(),
+                  style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade900),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E3A8A),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16, horizontal: 24),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const GestionSessionPage()),
+                    );
+                  },
+                  child: const Text(
+                    "Gestion des Séances",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      child: ListView(
+        children: [
+          UserAccountsDrawerHeader(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF1E3A8A), Colors.blue.shade600],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            accountName: Text(
+              filiere?['nom'] ?? "Filière non assignée",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            accountEmail: const Text("Coordinateur"),
+            currentAccountPicture: const CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Icon(Icons.school, size: 34, color: Color(0xFF1E3A8A)),
+            ),
+          ),
+          _drawerItem(context, Icons.dashboard, "Tableau de bord", this.widget),
+          _drawerItem(
+            context,
+            Icons.list,
+            "Gestion des modéles de IRSI",
+            ModuleListWithGroupsPage(filiereId: filiere?['id'] ?? 0),
+          ),
+          _drawerItem(
+            context,
+            Icons.list,
+            "Liste des modéles avec groupes",
+            const ListeModuleGroupe(),
+          ),
+          _drawerItem(
+            context,
+            Icons.list,
+            "Répartition des modéles par groupe",
+            DistributeModulesByGroupPage(filiereId: filiere?['id'] ?? 0),
+          ),
+          _drawerItem(
+            context,
+            Icons.bar_chart,
+            "Taux d'absences",
+            const AbsenceRatePage(),
+          ),
+          _drawerItem(
+            context,
+            Icons.warning_amber,
+            "Alertes absences",
+            const AlertAbsencePage(),
+          ),
+          _drawerItem(
+            context,
+            Icons.people,
+            "Affectation professeurs",
+            const AffectProfPage(),
+          ),
+          _drawerItem(
+            context,
+            Icons.list,
+            "Liste des professeurs avec modules assignés",
+            const ProfesseursAssignesPage(),
+          ),
+          _drawerItem(
+            context,
+            Icons.school,
+            "Étudiants assignés",
+            AssignedStudentsPage(filiereId: filiere?['id'] ?? 0),
+          ),
+          _drawerItem(
+            context,
+            Icons.group,
+            "Répartition des étudiants par groupe",
+            DistributeStudentsByGroupPage(filiereId: filiere?['id'] ?? 0),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text("Déconnexion"),
+            onTap: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -165,29 +272,11 @@ class _CoordinatorHomeState extends State<CoordinatorHome> {
   Widget _drawerItem(
       BuildContext context, IconData icon, String title, Widget page) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF0D47A1)),
+      leading: Icon(icon, color: const Color(0xFF1E3A8A)),
       title: Text(title),
       onTap: () {
         Navigator.push(context, MaterialPageRoute(builder: (_) => page));
       },
-    );
-  }
-
-  Widget _statCard(String title, String value, IconData icon, Color color) {
-    return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: color.withOpacity(0.15),
-          child: Icon(icon, color: color),
-        ),
-        title: Text(title),
-        trailing: Text(
-          value,
-          style: TextStyle(fontWeight: FontWeight.bold, color: color),
-        ),
-      ),
     );
   }
 }

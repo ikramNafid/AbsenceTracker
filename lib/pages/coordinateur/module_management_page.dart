@@ -53,7 +53,7 @@ class _ModuleManagementPageState extends State<ModuleManagementPage> {
       appBar: AppBar(
         title: const Text("Ajouter un module"),
         centerTitle: true,
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Colors.lightBlue,
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -66,7 +66,7 @@ class _ModuleManagementPageState extends State<ModuleManagementPage> {
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple,
+                    color: Colors.lightBlue,
                   ),
                 ),
                 const SizedBox(height: 25),
@@ -77,7 +77,7 @@ class _ModuleManagementPageState extends State<ModuleManagementPage> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    prefixIcon: Icon(Icons.book, color: Colors.deepPurple),
+                    prefixIcon: Icon(Icons.book, color: Colors.lightBlue),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -88,7 +88,7 @@ class _ModuleManagementPageState extends State<ModuleManagementPage> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    prefixIcon: Icon(Icons.school, color: Colors.deepPurple),
+                    prefixIcon: Icon(Icons.school, color: Colors.lightBlue),
                   ),
                 ),
                 const SizedBox(height: 30),
@@ -103,7 +103,7 @@ class _ModuleManagementPageState extends State<ModuleManagementPage> {
                       style: TextStyle(fontSize: 18),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
+                      backgroundColor: Colors.lightBlue,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

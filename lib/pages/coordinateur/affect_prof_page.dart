@@ -35,7 +35,7 @@ class _AffectProfPageState extends State<AffectProfPage> {
     });
   }
 
-  void _affecterProf(int moduleId) {
+  void _affecterProf(int moduleId) async {
     if (selectedProfId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Veuillez choisir un professeur")),
@@ -43,12 +43,20 @@ class _AffectProfPageState extends State<AffectProfPage> {
       return;
     }
 
-    // 🔹 ICI tu peux créer plus tard une table module_professeur
-    // Pour l’instant on affiche juste la confirmation
+    try {
+      final db = DatabaseHelper.instance;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Professeur affecté avec succès")),
-    );
+      // 🔹 Affecter le module au professeur
+      await db.affecterModuleAProf(moduleId, selectedProfId!);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Professeur affecté avec succès")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur lors de l'affectation: $e")),
+      );
+    }
   }
 
   @override

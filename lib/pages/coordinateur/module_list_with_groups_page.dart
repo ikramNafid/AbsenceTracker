@@ -54,7 +54,7 @@ class _ModuleListWithGroupsPageState extends State<ModuleListWithGroupsPage> {
       // 🔹 APP BAR
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Colors.blue,
         centerTitle: true,
         title: const Column(
           children: [
@@ -124,7 +124,7 @@ class _ModuleListWithGroupsPageState extends State<ModuleListWithGroupsPage> {
                     backgroundColor: Colors.deepPurple.shade100,
                     child: const Icon(
                       Icons.menu_book,
-                      color: Colors.deepPurple,
+                      color: Colors.blue,
                     ),
                   ),
 
@@ -152,7 +152,7 @@ class _ModuleListWithGroupsPageState extends State<ModuleListWithGroupsPage> {
                           child: Text(
                             "Semestre ${m['semester']}",
                             style: const TextStyle(
-                                color: Colors.deepPurple,
+                                color: Colors.blue,
                                 fontWeight: FontWeight.w600),
                           ),
                         ),
@@ -226,7 +226,7 @@ class _ModuleListWithGroupsPageState extends State<ModuleListWithGroupsPage> {
 
       // 🔹 FLOATING BUTTON
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Colors.blueAccent,
         icon: const Icon(Icons.add),
         label: const Text("Ajouter un module"),
         onPressed: () {

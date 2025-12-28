@@ -44,7 +44,6 @@ class _ProfHomeState extends State<ProfHome> {
     final path = join(dbPath, 'absence_tracker.db');
 
     await deleteDatabase(path);
-    // Forcer la réinitialisation de l'instance
     await DatabaseHelper.instance.database;
 
     await _loadDashboardData();
@@ -111,8 +110,14 @@ class _ProfHomeState extends State<ProfHome> {
                     title: "Mes Modules",
                     icon: Icons.book,
                     color: Colors.orange,
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const ModulesPage())),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ModulesPage(
+                          profId: widget.professorData['id'], // ← correct ici
+                        ),
+                      ),
+                    ),
                   ),
                   _buildCard(
                     context,
@@ -134,17 +139,15 @@ class _ProfHomeState extends State<ProfHome> {
                         MaterialPageRoute(
                             builder: (_) => const StatisticsPage())),
                   ),
-                  _buildCard(
-                    context,
-                    title: "Profil",
-                    icon: Icons.person,
-                    color: Colors.purple,
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                ProfilePage(userData: widget.professorData))),
-                  ),
+                  _buildCard(context,
+                      title: "Profil",
+                      icon: Icons.person,
+                      color: Colors.purple,
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => ProfilePage(
+                                  userData: widget.professorData)))),
                 ],
               ),
               const SizedBox(height: 30),
@@ -300,8 +303,14 @@ class _ProfHomeState extends State<ProfHome> {
             title: const Text("Mes Modules"),
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const ModulesPage()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ModulesPage(
+                    profId: widget.professorData['id'], // ← correct ici
+                  ),
+                ),
+              );
             },
           ),
           ListTile(

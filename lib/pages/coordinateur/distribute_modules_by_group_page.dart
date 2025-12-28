@@ -105,7 +105,7 @@ class _DistributeModulesByGroupPageState
     return Scaffold(
       appBar: AppBar(
         title: const Text("Répartition des modules par groupe"),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Colors.lightBlue,
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -135,7 +135,7 @@ class _DistributeModulesByGroupPageState
                           icon: const Icon(Icons.group_add),
                           label: const Text("Affecter"),
                           style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.deepPurple),
+                              backgroundColor: Colors.lightBlue),
                         ),
                       ),
                     );
