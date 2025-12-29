@@ -130,6 +130,15 @@ class DatabaseHelper {
     FOREIGN KEY(coordinateurId) REFERENCES users(id) -- remplacer "coordinateurId" par "coordinateurId"
   )
 ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS profseance(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        professeurId INTEGER NOT NULL,
+        sessionId INTEGER NOT NULL,
+        FOREIGN KEY(professeurId) REFERENCES users(id),
+        FOREIGN KEY(sessionId) REFERENCES sessions(id)
+      )
+    ''');
 
     // ====== INSÉRER LES DONNÉES PAR DÉFAUT SI VIDE ======
     final rolesCount = await db.query('roles');
@@ -156,19 +165,19 @@ class DatabaseHelper {
       });
       await db.insert('filieres', {
         'nom': 'ROC',
-        'description': 'Réseaux, Organisation et Communication',
+        'description': 'Robotique,objets connectés',
       });
     }
 
     final usersCount = await db.query('users');
     if (usersCount.isEmpty) {
-      await db.insert('users', {
-        'firstName': 'Ikram',
-        'lastName': 'Nafid',
-        'email': 'ikram@ump.com',
-        'password': '2003',
-        'roleId': 1,
-      });
+      // await db.insert('users', {
+      //   'firstName': 'Ikram',
+      //   'lastName': 'Nafid',
+      //   'email': 'ikram@ump.com',
+      //   'password': '2003',
+      //   'roleId': 1,
+      // });
 
       // await db.insert('users', {
       //   'firstName': 'Mohammed',
@@ -287,12 +296,8 @@ class DatabaseHelper {
   // ======== GESTION MISE À JOUR DB ========
   Future<List<Map<String, dynamic>>> getStudentsByGroup(int groupId) async {
     final db = await database;
-    return await db.query(
-      'students',
-      where: 'groupId = ?',
-      whereArgs: [groupId],
-      orderBy: 'lastName',
-    );
+    return await db
+        .query('students', where: 'groupId = ?', whereArgs: [groupId]);
   }
 
   Future<List<Map<String, dynamic>>> getAbsencesBySession(int sessionId) async {
@@ -332,10 +337,27 @@ class DatabaseHelper {
   }
 
   Future<List<Map<String, dynamic>>> getSessionsToday() async {
+    final db = await database;
     final today = DateTime.now().toIso8601String().substring(0, 10);
-    return await getSessionsByDate(
-      today,
-    ); // Appel de la méthode que nous venons d'ajouter
+
+    // 🔹 LEFT JOIN pour éviter les plantages si module_groups ou groups est vide
+    final result = await db.rawQuery('''
+    SELECT 
+      s.id,
+      s.time,
+      s.date,
+      m.name AS moduleName,
+      g.name AS groupName
+    FROM sessions s
+    LEFT JOIN modules m ON s.moduleId = m.id
+    LEFT JOIN module_groups mg ON m.id = mg.moduleId
+    LEFT JOIN groups g ON mg.groupId = g.id
+    WHERE s.date = ?
+      AND m.name IN ('Administration Système Linux', 'Système d\'Exploitation')
+    ORDER BY s.time
+  ''', [today]);
+
+    return result;
   }
 
   Future<List<Map<String, dynamic>>> getGroupsByModuleName(
@@ -909,5 +931,127 @@ class DatabaseHelper {
         status: row['status'] as String,
       );
     }).toList();
+  }
+  // ====================== MÉTHODES PROFSEANCE ======================
+
+  // Assigner une séance à un professeur
+  Future<void> assignSessionToProf(int profId, int sessionId) async {
+    final db = await database;
+    final existing = await db.query(
+      'profseance',
+      where: 'professeurId = ? AND sessionId = ?',
+      whereArgs: [profId, sessionId],
+    );
+    if (existing.isEmpty) {
+      await db.insert('profseance', {
+        'professeurId': profId,
+        'sessionId': sessionId,
+      });
+    }
+  }
+
+  // Récupérer les séances du jour pour un professeur
+  Future<List<Map<String, dynamic>>> getTodaySessionsByProf(int profId) async {
+    final db = await database;
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final result = await db.rawQuery('''
+    SELECT s.id, s.time, s.date, s.type, m.name AS moduleName, g.name AS groupName, g.id AS groupId
+    FROM sessions s
+    JOIN module_groups mg ON mg.moduleId = s.moduleId
+    JOIN groups g ON mg.groupId = g.id
+    JOIN profseance p ON p.sessionId = s.id
+    JOIN modules m ON s.moduleId = m.id
+    WHERE p.professeurId = ? AND s.date = ?
+  ''', [profId, today]);
+    return result;
+  }
+
+  // DatabaseHelper.dart
+  Future<void> insertDefaultSessions() async {
+    final db = await database;
+
+    // Vérifier si la table sessions est vide
+    final sessionsCount = await db.query('sessions');
+    if (sessionsCount.isNotEmpty) return; // déjà rempli
+
+    // Récupérer les modules spécifiques
+    final moduleAdmin = await db.query(
+      'modules',
+      where: 'name = ?',
+      whereArgs: ['Administration Système Linux'],
+    );
+    final moduleSys = await db.query(
+      'modules',
+      where: 'name = ?',
+      whereArgs: ['Système d\'Exploitation'],
+    );
+
+    if (moduleAdmin.isEmpty || moduleSys.isEmpty) {
+      print('Modules par défaut non trouvés !');
+      return;
+    }
+
+    final moduleAdminId = moduleAdmin.first['id'] as int;
+    final moduleSysId = moduleSys.first['id'] as int;
+
+    // Récupérer les groupes spécifiques
+    final groupIRSI2 = await db.query(
+      'groups',
+      where: 'name = ?',
+      whereArgs: ['IRSI2'],
+    );
+    final groupIRSI1A = await db.query(
+      'groups',
+      where: 'name = ?',
+      whereArgs: ['IRSI1-A'],
+    );
+
+    if (groupIRSI2.isEmpty || groupIRSI1A.isEmpty) {
+      print('Groupes par défaut non trouvés !');
+      return;
+    }
+
+    final groupIRSI2Id = groupIRSI2.first['id'] as int;
+    final groupIRSI1AId = groupIRSI1A.first['id'] as int;
+
+    // Date d'aujourd'hui
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+
+    // 🔹 Insérer les deux séances
+    await db.insert('sessions', {
+      'moduleId': moduleAdminId,
+      'date': today,
+      'time': '08:30',
+      'type': 'Cours',
+    });
+
+    await db.insert('sessions', {
+      'moduleId': moduleSysId,
+      'date': today,
+      'time': '10:15',
+      'type': 'Cours',
+    });
+
+    print('Séances par défaut insérées avec succès !');
+  }
+
+  Future<List<Map<String, dynamic>>> getDefaultTodaySessions(int profId) async {
+    final db = await database;
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+
+    final result = await db.rawQuery('''
+    SELECT s.id, s.date, s.time, s.type, m.name AS moduleName, g.name AS groupName, g.id AS groupId
+    FROM profseance pf
+    JOIN sessions s ON pf.sessionId = s.id
+    JOIN modules m ON s.moduleId = m.id
+    LEFT JOIN module_groups mg ON m.id = mg.moduleId
+    LEFT JOIN groups g ON mg.groupId = g.id
+    WHERE pf.professeurId = ? 
+      AND s.date = ?
+      AND m.name IN ('Administration Système Linux', 'Système d\'Exploitation')
+    ORDER BY s.time
+  ''', [profId, today]);
+
+    return result;
   }
 }

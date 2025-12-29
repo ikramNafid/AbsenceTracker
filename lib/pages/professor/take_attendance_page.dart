@@ -1,25 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:pdf/pdf.dart';
-import 'package:csv/csv.dart';
-import '../../database/database_helper.dart';
-
-enum AttendanceStatus { present, absent, justified }
+import '../../../database/database_helper.dart';
 
 class TakeAttendancePage extends StatefulWidget {
   final int sessionId;
-  final int groupId;
-  final String title; // ✅ AJOUT
-
-  const TakeAttendancePage({
-    super.key,
-    required this.sessionId,
-    required this.groupId,
-    required this.title, // ✅ AJOUT
-  });
+  const TakeAttendancePage({super.key, required this.sessionId});
 
   @override
   State<TakeAttendancePage> createState() => _TakeAttendancePageState();
@@ -27,8 +11,7 @@ class TakeAttendancePage extends StatefulWidget {
 
 class _TakeAttendancePageState extends State<TakeAttendancePage> {
   List<Map<String, dynamic>> students = [];
-  Map<int, bool> presence = {}; // studentId -> présent ou non
-  bool loading = true;
+  Map<int, String> statusMap = {}; // studentId -> "Present" / "Absent"
 
   @override
   void initState() {
@@ -37,71 +20,85 @@ class _TakeAttendancePageState extends State<TakeAttendancePage> {
   }
 
   Future<void> _loadStudents() async {
-    final data =
-        await DatabaseHelper.instance.getStudentsByGroup(widget.groupId);
+    // Récupérer session
+    final session =
+        await DatabaseHelper.instance.getSessionById(widget.sessionId);
 
+    // Ici on suppose que chaque séance est liée à un seul groupe via module_groups
+    final moduleId = session['moduleId'] as int;
+    final groups = await DatabaseHelper.instance.getGroupsByModule(moduleId);
+
+    if (groups.isEmpty) return;
+    final groupId = groups.first['id'] as int;
+
+    final studentList =
+        await DatabaseHelper.instance.getStudentsByGroup(groupId);
     setState(() {
-      students = data;
+      students = studentList;
+      // Initialiser le status par défaut
       for (var s in students) {
-        presence[s['id']] = true; // présent par défaut
+        statusMap[s['id'] as int] = 'Absent';
       }
-      loading = false;
     });
   }
 
   Future<void> _saveAttendance() async {
-    for (var s in students) {
+    for (var student in students) {
+      final studentId = student['id'] as int;
+      final status = statusMap[studentId] ?? 'Absent';
       await DatabaseHelper.instance.insertAbsence({
         'sessionId': widget.sessionId,
-        'studentId': s['id'],
-        'status': presence[s['id']]! ? 'present' : 'absent',
+        'studentId': studentId,
+        'status': status,
       });
     }
-
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Appel enregistré avec succès")),
+      const SnackBar(content: Text('Absences enregistrées avec succès !')),
     );
-
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Faire l'appel")),
-      body: loading
+      appBar: AppBar(title: const Text("Marquer les absences")),
+      body: students.isEmpty
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: students.length,
-                    itemBuilder: (context, index) {
-                      final s = students[index];
-                      return CheckboxListTile(
-                        title: Text("${s['lastName']} ${s['firstName']}"),
-                        value: presence[s['id']],
-                        onChanged: (val) {
-                          setState(() {
-                            presence[s['id']] = val!;
-                          });
-                        },
-                      );
-                    },
+          : ListView.builder(
+              itemCount: students.length,
+              itemBuilder: (context, index) {
+                final student = students[index];
+                final studentId = student['id'] as int;
+                return Card(
+                  margin: const EdgeInsets.all(8.0),
+                  child: ListTile(
+                    title:
+                        Text('${student['firstName']} ${student['lastName']}'),
+                    trailing: DropdownButton<String>(
+                      value: statusMap[studentId],
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'Present', child: Text('Présent')),
+                        DropdownMenuItem(
+                            value: 'Absent', child: Text('Absent')),
+                      ],
+                      onChanged: (val) {
+                        setState(() {
+                          statusMap[studentId] = val!;
+                        });
+                      },
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.save),
-                    label: const Text("Enregistrer l'appel"),
-                    onPressed: _saveAttendance,
-                    style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 50)),
-                  ),
-                )
-              ],
+                );
+              },
             ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: ElevatedButton(
+          onPressed: _saveAttendance,
+          child: const Text('Enregistrer les absences'),
+        ),
+      ),
     );
   }
 }

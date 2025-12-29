@@ -114,7 +114,7 @@ class _ProfHomeState extends State<ProfHome> {
                       context,
                       MaterialPageRoute(
                         builder: (_) => ModulesPage(
-                          profId: widget.professorData['id'], // ← correct ici
+                          profId: widget.professorData['id'],
                         ),
                       ),
                     ),
@@ -127,7 +127,8 @@ class _ProfHomeState extends State<ProfHome> {
                     onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const SessionsTodayPage())),
+                            builder: (_) => SessionsTodayPage(
+                                profId: widget.professorData['id']))),
                   ),
                   _buildCard(
                     context,
@@ -233,8 +234,8 @@ class _ProfHomeState extends State<ProfHome> {
                               MaterialPageRoute(
                                   builder: (_) => TakeAttendancePage(
                                         sessionId: session['id'],
-                                        groupId: session['groupId'],
-                                        title: session['moduleName'],
+                                        //  groupId: session['groupId'],
+                                        //title: session['moduleName'],
                                       )));
                         },
                         child: const Text("Faire l'appel →"),
@@ -307,7 +308,7 @@ class _ProfHomeState extends State<ProfHome> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => ModulesPage(
-                    profId: widget.professorData['id'], // ← correct ici
+                    profId: widget.professorData['id'],
                   ),
                 ),
               );
@@ -318,8 +319,11 @@ class _ProfHomeState extends State<ProfHome> {
             title: const Text("Mes Séances"),
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const SessionsTodayPage()));
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => SessionsTodayPage(
+                          profId: widget.professorData['id'])));
             },
           ),
           ListTile(
