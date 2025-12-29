@@ -1,0 +1,10 @@
+id,moduleId,date,time,type,professeur,groupes
+1,101,2025-12-28,08:00,Cours,Manal Boughanja,IRSI1-A,IRSI1-B
+2,102,2025-12-28,10:00,TD,Mohammed Boudchiche,IRSI2
+3,103,2025-12-28,12:00,TP,Manal Boughanja,IRSI1-A
+4,101,2025-12-29,08:00,Cours,Mohammed Boudchiche,IRSI2
+5,102,2025-12-29,10:00,TD,Manal Boughanja,IRSI1-B
+6,103,2025-12-29,12:00,TP,Mohammed Boudchiche,IRSI2
+7,104,2025-12-28,14:00,Cours,Manal Boughanja,IRSI1-A,IRSI2
+8,105,2025-12-28,16:00,TD,Mohammed Boudchiche,IRSI1-B
+9,106,2025-12-29,08:00,TP,Manal Boughanja,IRSI2

@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:absence_tracker/models/absence_model.dart';
+import "../models/absence_model.dart";
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -24,7 +24,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 12,
+      version: 13,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -88,12 +88,12 @@ class DatabaseHelper {
       )
     ''');
     await db.execute('''
-  CREATE TABLE module_groups(
+  CREATE TABLE module_professeur (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     moduleId INTEGER NOT NULL,
-    groupId INTEGER NOT NULL,
+    professeurId INTEGER NOT NULL,
     FOREIGN KEY(moduleId) REFERENCES modules(id),
-    FOREIGN KEY(groupId) REFERENCES groups(id)
+    FOREIGN KEY(professeurId) REFERENCES users(id)
   )
 ''');
 
@@ -162,13 +162,13 @@ class DatabaseHelper {
 
     final usersCount = await db.query('users');
     if (usersCount.isEmpty) {
-      // await db.insert('users', {
-      //   'firstName': 'Ikram',
-      //   'lastName': 'Nafid',
-      //   'email': 'ikram@ump.com',
-      //   'password': '2003',
-      //   'roleId': 1,
-      // });
+      await db.insert('users', {
+        'firstName': 'Ikram',
+        'lastName': 'Nafid',
+        'email': 'ikram@ump.com',
+        'password': '2003',
+        'roleId': 1,
+      });
 
       // await db.insert('users', {
       //   'firstName': 'Mohammed',
@@ -197,7 +197,7 @@ class DatabaseHelper {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 12) {
+    if (oldVersion < 13) {
       await db.execute('''
       CREATE TABLE module_professeur (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -233,25 +233,6 @@ class DatabaseHelper {
   // }
 
   // ================== PROFESSEURS AVEC MODULES ==================
-  // DatabaseHelper.dart
-
-  Future<void> affecterModuleAProf(int moduleId, int profId) async {
-    final db = await database;
-
-    // Vérifier si l'affectation existe déjà
-    final existing = await db.query(
-      'module_professeur',
-      where: 'moduleId = ? AND professeurId = ?',
-      whereArgs: [moduleId, profId],
-    );
-
-    if (existing.isEmpty) {
-      await db.insert('module_professeur', {
-        'moduleId': moduleId,
-        'professeurId': profId,
-      });
-    }
-  }
 
   Future<List<Map<String, dynamic>>> getProfesseursWithModules() async {
     final db = await database;
@@ -274,17 +255,32 @@ class DatabaseHelper {
 
     return data;
   }
+  // DatabaseHelper.dart
 
-// 🔹 Récupérer les modules affectés à un professeur
+  Future<void> affecterModuleAProf(int moduleId, int profId) async {
+    final db = await database;
+
+    // Vérifier si l'affectation existe déjà
+    final existing = await db.query(
+      'module_professeur',
+      where: 'moduleId = ? AND professeurId = ?',
+      whereArgs: [moduleId, profId],
+    );
+
+    if (existing.isEmpty) {
+      await db.insert('module_professeur', {
+        'moduleId': moduleId,
+        'professeurId': profId,
+      });
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getModulesByProfesseur(int profId) async {
     final db = await database;
-    final data = await db.rawQuery('''
-    SELECT m.id, m.name, m.semester
-    FROM module_professeur mp
-    JOIN modules m ON mp.moduleId = m.id
-    WHERE mp.professeurId = ?
-  ''', [profId]);
-
+    final data = await db.rawQuery(
+        ''' SELECT m.id, m.name, m.semester FROM module_professeur mp 
+        JOIN modules m ON mp.moduleId = m.id WHERE mp.professeurId = ? ''',
+        [profId]);
     return data;
   }
 
@@ -863,45 +859,48 @@ class DatabaseHelper {
     );
   }
 
-  // ================== BD BRANCH MARIAME ==================
-  Future<Map<String, dynamic>?> getStudentProfile(int studentId) async {
+  //========================================MARIAME======================
+  Future<Map<String, dynamic>?> getStudentProfile(int id) async {
     final db = await database;
-
-    final result = await db.rawQuery('''
-    SELECT 
-      s.firstName,
-      s.lastName,
-      s.email,
-      s.massar,
-      g.name AS groupName,
-      g.filiere
-    FROM students s
-    LEFT JOIN groups g ON s.groupId = g.id
-    WHERE s.id = ?
-  ''', [studentId]);
-
+    // Utiliser la bonne table et la bonne colonne
+    final result = await db.query(
+      'students',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
     if (result.isNotEmpty) {
-      return result.first;
+      final student = result.first; // Récupérer le groupe
+      final group = await db.query(
+        'groups',
+        where: 'id = ?',
+        whereArgs: [student['groupId']],
+      );
+      student['groupName'] = group.isNotEmpty ? group.first['name'] : null;
+      // Récupérer la filière via le groupe
+      if (group.isNotEmpty && group.first['idFiliere'] != null) {
+        final filiere = await db.query(
+          'filieres',
+          where: 'id = ?',
+          whereArgs: [group.first['idFiliere']],
+        );
+        student['filiere'] =
+            filiere.isNotEmpty ? filiere.first['nom'] : 'Non assignée';
+      } else {
+        student['filiere'] = 'Non assignée';
+      }
+      return student;
+    } else {
+      return null;
     }
-    return null;
   }
 
   Future<List<Absence>> getAbsencesByStudent(int studentId) async {
     final db = await database;
-
-    final result = await db.rawQuery('''
-    SELECT 
-      absences.id,
-      modules.name AS moduleName,
-      sessions.date,
-      absences.status
-    FROM absences
-    INNER JOIN sessions ON absences.sessionId = sessions.id
-    INNER JOIN modules ON sessions.moduleId = modules.id
-    WHERE absences.studentId = ?
-    ORDER BY sessions.date DESC
-  ''', [studentId]);
-
+    final result = await db.rawQuery(
+        ''' SELECT absences.id, modules.name AS moduleName, sessions.date, absences.status FROM absences
+         INNER JOIN sessions ON absences.sessionId = sessions.id INNER JOIN modules
+          ON sessions.moduleId = modules.id WHERE absences.studentId = ? ORDER BY sessions.date DESC ''',
+        [studentId]);
     return result.map((row) {
       return Absence(
         id: row['id'] as int,

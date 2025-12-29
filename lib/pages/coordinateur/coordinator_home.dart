@@ -10,7 +10,6 @@ import 'module_list_with_groups_page.dart';
 import 'liste_module_froupe.dart';
 import 'ProfesseursAssignesPage.dart';
 import "../../database/login_page.dart";
-import "gestion_session.dart";
 
 class CoordinatorHome extends StatefulWidget {
   final int coordinateurId;
@@ -145,28 +144,6 @@ class _CoordinatorHomeState extends State<CoordinatorHome> {
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: Colors.blue.shade900),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E3A8A),
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 16, horizontal: 24),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const GestionSessionPage()),
-                    );
-                  },
-                  child: const Text(
-                    "Gestion des Séances",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
                 ),
               ],
             ),

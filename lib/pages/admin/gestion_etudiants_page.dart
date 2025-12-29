@@ -67,9 +67,9 @@ class _GestionEtudiantsPageState extends State<GestionEtudiantsPage> {
             TextField(
                 controller: lastName,
                 decoration: const InputDecoration(labelText: 'Nom')),
-            TextField(
-                controller: email,
-                decoration: const InputDecoration(labelText: 'Email')),
+            // TextField(
+            //     controller: email,
+            //     decoration: const InputDecoration(labelText: 'Email')),
             TextField(
                 controller: massar,
                 decoration: const InputDecoration(labelText: 'Massar')),
