@@ -55,7 +55,7 @@ class _TakeAttendancePageState extends State<TakeAttendancePage> {
     });
   }
 
-  // --- LOGIQUE D'EXPORTATION ---
+  // --- LOGIQUE D'EXPORTATION ET PARTAGE ---
   Future<void> _exportAndShare(String format) async {
     final directory = await getTemporaryDirectory();
     final dateStr = DateTime.now().toString().substring(0, 10);
@@ -76,8 +76,7 @@ class _TakeAttendancePageState extends State<TakeAttendancePage> {
               pw.Text("Date : $dateStr"),
               pw.SizedBox(height: 20),
               pw.TableHelper.fromTextArray(
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                headers: ['Nom', 'Prenom', 'Statut'],
+                headers: ['Nom', 'Prénom', 'Statut'],
                 data: students
                     .map((s) => [
                           s['lastName'].toString().toUpperCase(),
@@ -95,7 +94,7 @@ class _TakeAttendancePageState extends State<TakeAttendancePage> {
       filePath = file.path;
     } else {
       List<List<dynamic>> rows = [
-        ["Nom", "Prenom", "Statut"]
+        ["Nom", "Prénom", "Statut"]
       ];
       for (var s in students) {
         rows.add([
@@ -114,7 +113,6 @@ class _TakeAttendancePageState extends State<TakeAttendancePage> {
         text: 'Rapport d\'appel - ${widget.title}');
   }
 
-  // --- ENREGISTREMENT ET DIALOGUE ---
   void _saveAttendance() async {
     setState(() => _isSaving = true);
     final db = DatabaseHelper.instance;
@@ -131,29 +129,35 @@ class _TakeAttendancePageState extends State<TakeAttendancePage> {
 
       if (!mounted) return;
 
-      // Afficher le dialogue d'exportation
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           title: const Text("Appel enregistré !"),
-          content:
-              const Text("Voulez-vous exporter la liste avant de quitter ?"),
+          content: const Text(
+              "Voulez-vous exporter et partager la liste avant de quitter ?"),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Ferme le dialogue
-                Navigator.pop(context); // Retour à l'accueil
+                Navigator.pop(context); // Ferme dialogue
+                Navigator.pop(context); // Retour accueil
               },
-              child: const Text("Non, quitter"),
+              child: const Text("NON, QUITTER"),
             ),
-            TextButton(
+            IconButton(
               onPressed: () => _exportAndShare('csv'),
-              child: const Text("CSV"),
+              icon: const Icon(Icons.description,
+                  color: Colors.green), // CSV Icon
             ),
-            ElevatedButton(
+            ElevatedButton.icon(
               onPressed: () => _exportAndShare('pdf'),
-              child: const Text("PDF"),
+              icon: const Icon(Icons.picture_as_pdf),
+              label: const Text("PDF"),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                  foregroundColor: Colors.white),
             ),
           ],
         ),
@@ -170,17 +174,25 @@ class _TakeAttendancePageState extends State<TakeAttendancePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title), elevation: 0),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: Text(widget.title,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: Column(
         children: [
+          _buildHeader(),
           _buildQuickActions(),
           Expanded(
             child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 10),
               itemCount: students.length,
               itemBuilder: (context, index) {
                 final s = students[index];
-                final status = attendance[s['id']];
-                return _buildStudentCard(s, status!);
+                return _buildStudentCard(s, attendance[s['id']]!);
               },
             ),
           ),
@@ -190,25 +202,41 @@ class _TakeAttendancePageState extends State<TakeAttendancePage> {
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(12),
-      color: Colors.blue.withOpacity(0.1),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 25),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade700,
+        borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+      ),
+      child: Text(
+        "${students.length} étudiants à évaluer",
+        style: const TextStyle(color: Colors.white70, fontSize: 15),
+      ),
+    );
+  }
+
+  Widget _buildQuickActions() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Expanded(
             child: OutlinedButton.icon(
-              icon: const Icon(Icons.check_circle_outline),
-              label: const Text("Tous Présents"),
+              icon: const Icon(Icons.check_circle_outline, color: Colors.green),
+              label: const Text("Tous Présents",
+                  style: TextStyle(color: Colors.green)),
               onPressed: () => _markAll(AttendanceStatus.present),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
             child: OutlinedButton.icon(
-              icon: const Icon(Icons.remove_circle_outline),
-              label: const Text("Tous Absents"),
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+              icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+              label: const Text("Tous Absents",
+                  style: TextStyle(color: Colors.red)),
               onPressed: () => _markAll(AttendanceStatus.absent),
             ),
           ),
@@ -218,68 +246,92 @@ class _TakeAttendancePageState extends State<TakeAttendancePage> {
   }
 
   Widget _buildStudentCard(Map<String, dynamic> s, AttendanceStatus status) {
-    Color bgColor = Colors.white;
-    if (status == AttendanceStatus.absent) bgColor = Colors.red.shade50;
-    if (status == AttendanceStatus.justified) bgColor = Colors.orange.shade50;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      color: bgColor,
-      shape: RoundedRectangleBorder(
-        side: BorderSide(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(10),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 4))
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(
-                backgroundColor: Colors.blue.shade800,
-                child: Text("${s['firstName'][0]}${s['lastName'][0]}",
-                    style: const TextStyle(color: Colors.white, fontSize: 12)),
-              ),
-              title: Text("${s['lastName'].toUpperCase()} ${s['firstName']}",
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
+      child: Column(
+        children: [
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              backgroundColor: Colors.blue.shade50,
+              child: Text("${s['firstName'][0]}${s['lastName'][0]}",
+                  style: TextStyle(
+                      color: Colors.blue.shade700,
+                      fontWeight: FontWeight.bold)),
             ),
-            SegmentedButton<AttendanceStatus>(
-              segments: const [
-                ButtonSegment(
-                    value: AttendanceStatus.present,
-                    label: Text("Présent"),
-                    icon: Icon(Icons.check)),
-                ButtonSegment(
-                    value: AttendanceStatus.absent,
-                    label: Text("Absent"),
-                    icon: Icon(Icons.close)),
-                ButtonSegment(
-                    value: AttendanceStatus.justified,
-                    label: Text("Justifié"),
-                    icon: Icon(Icons.info_outline)),
-              ],
-              selected: {status},
-              onSelectionChanged: (val) =>
-                  setState(() => attendance[s['id']] = val.first),
+            title: Text("${s['lastName'].toUpperCase()} ${s['firstName']}",
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 8),
+          SegmentedButton<AttendanceStatus>(
+            style: SegmentedButton.styleFrom(
+              selectedBackgroundColor: _getStatusColor(status),
+              selectedForegroundColor: Colors.white,
             ),
-          ],
-        ),
+            segments: const [
+              ButtonSegment(
+                  value: AttendanceStatus.present,
+                  label: Text("Présent"),
+                  icon: Icon(Icons.check, size: 16)),
+              ButtonSegment(
+                  value: AttendanceStatus.absent,
+                  label: Text("Absent"),
+                  icon: Icon(Icons.close, size: 16)),
+              ButtonSegment(
+                  value: AttendanceStatus.justified,
+                  label: Text("Justifié"),
+                  icon: Icon(Icons.info_outline, size: 16)),
+            ],
+            selected: {status},
+            onSelectionChanged: (val) =>
+                setState(() => attendance[s['id']] = val.first),
+          ),
+        ],
       ),
     );
   }
 
+  Color _getStatusColor(AttendanceStatus status) {
+    switch (status) {
+      case AttendanceStatus.present:
+        return Colors.green.shade600;
+      case AttendanceStatus.absent:
+        return Colors.red.shade600;
+      case AttendanceStatus.justified:
+        return Colors.orange.shade600;
+    }
+  }
+
   Widget _buildSaveButton() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+          color: Colors.white,
+          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)]),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16)),
+          backgroundColor: Colors.blue.shade700,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 55),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        ),
         onPressed: _isSaving ? null : _saveAttendance,
         child: _isSaving
             ? const CircularProgressIndicator(color: Colors.white)
-            : const Text("VALIDER L'APPEL",
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            : const Text("VALIDER ET ENREGISTRER",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
       ),
     );
   }

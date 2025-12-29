@@ -12,8 +12,9 @@ class AttendanceSessionPage extends StatefulWidget {
 
 class _AttendanceSessionPageState extends State<AttendanceSessionPage> {
   List<Map<String, dynamic>> students = [];
-  Map<int, String> attendanceStatus = {}; // studentId -> status
+  Map<int, String> attendanceStatus = {};
   Map<int, TextEditingController> noteControllers = {};
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -28,9 +29,10 @@ class _AttendanceSessionPageState extends State<AttendanceSessionPage> {
     setState(() {
       students = data;
       for (var s in students) {
-        attendanceStatus[s['id']] = 'present'; // par défaut présent
+        attendanceStatus[s['id']] = 'present';
         noteControllers[s['id']] = TextEditingController();
       }
+      isLoading = false;
     });
   }
 
@@ -52,56 +54,214 @@ class _AttendanceSessionPageState extends State<AttendanceSessionPage> {
       });
     }
     ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Absences enregistrées avec succès")));
+        const SnackBar(content: Text("✅ Absences enregistrées avec succès")));
     Navigator.pop(context);
   }
 
-  Widget _buildStudentCard(Map<String, dynamic> s) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("${s['firstName']} ${s['lastName']}",
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Row(
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: const Text("Feuille d'appel",
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
               children: [
-                DropdownButton<String>(
-                  value: attendanceStatus[s['id']],
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'present',
-                      child: Text('✓ Présent'),
+                // En-tête incurvé avec détails de la séance
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 25),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade700,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(30),
+                      bottomRight: Radius.circular(30),
                     ),
-                    DropdownMenuItem(
-                      value: 'absent',
-                      child: Text('✗ Absent'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'justified',
-                      child: Text('○ Justifié'),
-                    ),
-                  ],
-                  onChanged: (val) {
-                    setState(() {
-                      attendanceStatus[s['id']] = val!;
-                    });
-                  },
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "${widget.session['type']} - ${widget.session['date']}",
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Heure: ${widget.session['time']} • ${students.length} étudiants",
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 14),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 16),
+
+                // Barre d'actions rapides
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 15, horizontal: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _markAll('present'),
+                          icon: const Icon(Icons.check_circle_outline,
+                              color: Colors.green),
+                          label: const Text("Tout Présent",
+                              style: TextStyle(color: Colors.green)),
+                          style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.green)),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _markAll('absent'),
+                          icon: const Icon(Icons.highlight_off,
+                              color: Colors.red),
+                          label: const Text("Tout Absent",
+                              style: TextStyle(color: Colors.red)),
+                          style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.red)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
                 Expanded(
-                  child: TextField(
-                    controller: noteControllers[s['id']],
-                    decoration: const InputDecoration(
-                      hintText: "Commentaire / justification",
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: students.length,
+                    itemBuilder: (context, index) =>
+                        _buildStudentCard(students[index]),
+                  ),
+                ),
+
+                // Bouton Enregistrer en bas
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 10,
+                          offset: Offset(0, -2))
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _saveAttendance,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade700,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
+                    child: const Text("ENREGISTRER LA FEUILLE",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 ),
               ],
+            ),
+    );
+  }
+
+  Widget _buildStudentCard(Map<String, dynamic> s) {
+    String status = attendanceStatus[s['id']]!;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: _getStatusColor(status).withOpacity(0.1),
+                  child: Text(s['firstName'][0],
+                      style: TextStyle(
+                          color: _getStatusColor(status),
+                          fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Text(
+                    "${s['firstName']} ${s['lastName']}",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+                // Sélecteur de statut simplifié
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButton<String>(
+                    value: status,
+                    underline: const SizedBox(),
+                    icon: const Icon(Icons.arrow_drop_down, size: 20),
+                    items: const [
+                      DropdownMenuItem(
+                          value: 'present',
+                          child: Text('Présent',
+                              style: TextStyle(
+                                  color: Colors.green, fontSize: 13))),
+                      DropdownMenuItem(
+                          value: 'absent',
+                          child: Text('Absent',
+                              style:
+                                  TextStyle(color: Colors.red, fontSize: 13))),
+                      DropdownMenuItem(
+                          value: 'justified',
+                          child: Text('Justifié',
+                              style: TextStyle(
+                                  color: Colors.orange, fontSize: 13))),
+                    ],
+                    onChanged: (val) =>
+                        setState(() => attendanceStatus[s['id']] = val!),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: noteControllers[s['id']],
+              style: const TextStyle(fontSize: 13),
+              decoration: InputDecoration(
+                hintText: "Ajouter un commentaire ou motif...",
+                prefixIcon: const Icon(Icons.edit_note, size: 20),
+                filled: true,
+                fillColor: Colors.grey[50],
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none),
+              ),
             ),
           ],
         ),
@@ -109,49 +269,9 @@ class _AttendanceSessionPageState extends State<AttendanceSessionPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-            "Séance: ${widget.session['type']} - ${widget.session['date']} ${widget.session['time']}"),
-      ),
-      body: students.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // Actions rapides
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      ElevatedButton(
-                          onPressed: () => _markAll('present'),
-                          child: const Text("Tout présent")),
-                      ElevatedButton(
-                          onPressed: () => _markAll('absent'),
-                          child: const Text("Tout absent")),
-                    ],
-                  ),
-                ),
-                const Divider(),
-                // Liste des étudiants
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: students.length,
-                    itemBuilder: (context, index) =>
-                        _buildStudentCard(students[index]),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: ElevatedButton(
-                      onPressed: _saveAttendance,
-                      child: const Text("Enregistrer")),
-                ),
-              ],
-            ),
-    );
+  Color _getStatusColor(String status) {
+    if (status == 'absent') return Colors.red;
+    if (status == 'justified') return Colors.orange;
+    return Colors.green;
   }
 }
