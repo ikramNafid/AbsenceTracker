@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
 import '../../database/database_helper.dart';
 import 'modules/modules_page.dart';
 import 'sessions/sessions_today_page.dart';
@@ -28,14 +26,15 @@ class _ProfHomeState extends State<ProfHome> {
     _loadDashboardData();
   }
 
-  // Charger les données des séances du jour
   Future<void> _loadDashboardData() async {
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
     final sessions = await DatabaseHelper.instance.getSessionsToday();
-    setState(() {
-      _todaySessions = sessions;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _todaySessions = sessions;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -43,20 +42,31 @@ class _ProfHomeState extends State<ProfHome> {
     final String profName = widget.professorData['firstName'] ?? "Professeur";
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(
+          0xFFF8F9FA), // Gris très clair pour faire ressortir les cartes
       appBar: AppBar(
-        title: Text("Bonjour, Mr. $profName"),
+        title: Text("Bonjour, Mr. $profName",
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.account_circle),
-            tooltip: "Mon Profil",
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ProfilePage(userData: widget.professorData),
+            icon: const Icon(Icons.notifications_none_outlined),
+            onPressed: () {}, // Optionnel : pour l'esthétique
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: const CircleAvatar(
+                backgroundColor: Colors.white24,
+                child: Icon(Icons.person_outline, color: Colors.white),
+              ),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) =>
+                        ProfilePage(userData: widget.professorData)),
               ),
             ),
           ),
@@ -65,77 +75,21 @@ class _ProfHomeState extends State<ProfHome> {
       drawer: _buildDrawer(context),
       body: RefreshIndicator(
         onRefresh: _loadDashboardData,
+        color: Colors.blue.shade700,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 25, 16, 12),
-                child: Text(
-                  "Séances d'aujourd'hui",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-              ),
+              _buildSectionHeader("Séances d'aujourd'hui", Icons.event_note),
               _buildTodayCarousel(),
               const SizedBox(height: 10),
-              const Divider(indent: 20, endIndent: 20),
               const Padding(
-                padding: EdgeInsets.fromLTRB(20, 15, 16, 16),
-                child: Text(
-                  "Menu Principal",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Divider(thickness: 1),
               ),
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                children: [
-                  _buildMenuCard(
-                    context,
-                    title: "Mes Modules",
-                    icon: Icons.book,
-                    color: Colors.orange,
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const ModulesPage())),
-                  ),
-                  _buildMenuCard(
-                    context,
-                    title: "Mes Séances",
-                    icon: Icons.calendar_today,
-                    color: Colors.green,
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const SessionsTodayPage())),
-                  ),
-                  _buildMenuCard(
-                    context,
-                    title: "Statistiques",
-                    icon: Icons.bar_chart,
-                    color: Colors.blue,
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const StatisticsPage())),
-                  ),
-                  _buildMenuCard(
-                    context,
-                    title: "Profil",
-                    icon: Icons.person,
-                    color: Colors.purple,
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                ProfilePage(userData: widget.professorData))),
-                  ),
-                ],
-              ),
+              _buildSectionHeader("Menu Principal", Icons.grid_view_rounded),
+              _buildMainMenuGrid(context),
               const SizedBox(height: 30),
             ],
           ),
@@ -144,175 +98,244 @@ class _ProfHomeState extends State<ProfHome> {
     );
   }
 
-  // --- NOUVEAU DESIGN DES CARTES DE SÉANCES ---
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 25, 20, 15),
+      child: Row(
+        children: [
+          Icon(icon, size: 22, color: Colors.blue.shade800),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2D3142)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTodayCarousel() {
     if (_isLoading) {
       return const SizedBox(
-          height: 180, child: Center(child: CircularProgressIndicator()));
+          height: 190, child: Center(child: CircularProgressIndicator()));
     }
     if (_todaySessions.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(30),
-        margin: const EdgeInsets.symmetric(horizontal: 16),
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.symmetric(vertical: 40),
         decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey[200]!)),
-        child: const Text(
-          "Aucune séance prévue pour aujourd'hui.",
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.calendar_today_outlined,
+                size: 40, color: Colors.grey.shade300),
+            const SizedBox(height: 10),
+            const Text(
+              "Aucune séance prévue pour le moment.",
+              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+            ),
+          ],
         ),
       );
     }
 
     return SizedBox(
-      height: 190,
+      height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: _todaySessions.length,
         itemBuilder: (context, index) {
           final session = _todaySessions[index];
-          return Container(
-            width: 290,
-            margin: const EdgeInsets.only(right: 14),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue.shade800, Colors.blue.shade500],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(22),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.blue.withOpacity(0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.access_time,
-                              color: Colors.white70, size: 18),
-                          const SizedBox(width: 6),
-                          Text(
-                            session['time'] ?? "--:--",
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                            color: Colors.white24,
-                            borderRadius: BorderRadius.circular(10)),
-                        child: Text(
-                          (session['type'] ?? "Cours").toUpperCase(),
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  Text(
-                    session['moduleName'] ?? "Module Inconnu",
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    "Groupe: ${session['groupName'] ?? 'N/A'}",
-                    style: const TextStyle(color: Colors.white70, fontSize: 15),
-                  ),
-                  const Spacer(),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => TakeAttendancePage(
-                              sessionId: session['id'],
-                              groupId: session['groupId'],
-                              title: session['moduleName'],
-                            ),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.blue.shade800,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                      child: const Text(
-                        "FAIRE L'APPEL",
-                        style: TextStyle(
-                            fontWeight: FontWeight.w900, fontSize: 13),
-                      ),
-                    ),
-                  )
-                ],
-              ),
-            ),
-          );
+          return _buildSessionCard(session);
         },
       ),
     );
   }
 
-  // Widget pour les cartes du menu principal
-  Widget _buildMenuCard(BuildContext context,
-      {required String title,
-      required IconData icon,
-      required Color color,
-      required VoidCallback onTap}) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
+  Widget _buildSessionCard(Map<String, dynamic> session) {
+    return Container(
+      width: 300,
+      margin: const EdgeInsets.only(right: 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade800, Colors.blue.shade600],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 40, color: color),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.schedule, color: Colors.white70, size: 18),
+                    const SizedBox(width: 6),
+                    Text(session['time'] ?? "--:--",
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16)),
+                  ],
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Text((session['type'] ?? "Cours").toUpperCase(),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold)),
+                ),
+              ],
             ),
+            const Spacer(),
+            Text(
+              session['moduleName'] ?? "Module Inconnu",
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 19,
+                  fontWeight: FontWeight.bold),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text("Groupe: ${session['groupName'] ?? 'N/A'}",
+                style: const TextStyle(color: Colors.white70, fontSize: 14)),
+            const Spacer(),
+            ElevatedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => TakeAttendancePage(
+                          sessionId: session['id'],
+                          groupId: session['groupId'],
+                          title: session['moduleName'],
+                        )),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.blue.shade800,
+                minimumSize: const Size(double.infinity, 40),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+              child: const Text("FAIRE L'APPEL",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+            )
           ],
         ),
       ),
     );
   }
 
-  // --- DRAWER NETTOYÉ ---
+  Widget _buildMainMenuGrid(BuildContext context) {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      crossAxisSpacing: 15,
+      mainAxisSpacing: 15,
+      children: [
+        _buildMenuCard(context,
+            title: "Mes Modules",
+            icon: Icons.collections_bookmark_rounded,
+            color: Colors.orange.shade700,
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const ModulesPage()))),
+        _buildMenuCard(context,
+            title: "Calendrier",
+            icon: Icons.calendar_today_rounded,
+            color: Colors.green.shade600,
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const SessionsTodayPage()))),
+        _buildMenuCard(context,
+            title: "Analyses",
+            icon: Icons.insights_rounded,
+            color: Colors.blue.shade600,
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const StatisticsPage()))),
+        _buildMenuCard(context,
+            title: "Mon Compte",
+            icon: Icons.manage_accounts_rounded,
+            color: Colors.purple.shade600,
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) =>
+                        ProfilePage(userData: widget.professorData)))),
+      ],
+    );
+  }
+
+  Widget _buildMenuCard(BuildContext context,
+      {required String title,
+      required IconData icon,
+      required Color color,
+      required VoidCallback onTap}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                    color: color.withOpacity(0.1), shape: BoxShape.circle),
+                child: Icon(icon, size: 32, color: color),
+              ),
+              const SizedBox(height: 12),
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2D3142))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
       child: Column(
@@ -320,63 +343,58 @@ class _ProfHomeState extends State<ProfHome> {
           UserAccountsDrawerHeader(
             decoration: BoxDecoration(color: Colors.blue.shade700),
             accountName: Text(
-                "${widget.professorData['firstName']} ${widget.professorData['lastName']}"),
+                "${widget.professorData['firstName']} ${widget.professorData['lastName']}",
+                style: const TextStyle(fontWeight: FontWeight.bold)),
             accountEmail: Text("${widget.professorData['email']}"),
-            currentAccountPicture: const CircleAvatar(
+            currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
-              child: Icon(Icons.person, size: 45, color: Colors.blue),
+              child: Text(widget.professorData['firstName'][0],
+                  style: TextStyle(
+                      fontSize: 30,
+                      color: Colors.blue.shade700,
+                      fontWeight: FontWeight.bold)),
             ),
           ),
-          ListTile(
-            leading: const Icon(Icons.home),
-            title: const Text("Accueil"),
-            onTap: () => Navigator.pop(context),
-          ),
-          ListTile(
-            leading: const Icon(Icons.book),
-            title: const Text("Mes Modules"),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const ModulesPage()));
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.calendar_today),
-            title: const Text("Mes Séances"),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const SessionsTodayPage()));
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.bar_chart),
-            title: const Text("Statistiques"),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const StatisticsPage()));
-            },
-          ),
+          _drawerItem(
+              Icons.home_rounded, "Accueil", () => Navigator.pop(context)),
+          _drawerItem(Icons.book_rounded, "Mes Modules", () {
+            Navigator.pop(context);
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const ModulesPage()));
+          }),
+          _drawerItem(Icons.calendar_month_rounded, "Mes Séances", () {
+            Navigator.pop(context);
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const SessionsTodayPage()));
+          }),
+          _drawerItem(Icons.bar_chart_rounded, "Statistiques", () {
+            Navigator.pop(context);
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const StatisticsPage()));
+          }),
           const Spacer(),
           const Divider(),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text("Déconnexion",
-                style:
-                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-            onTap: () {
-              Navigator.pushAndRemoveUntil(
+          _drawerItem(Icons.logout_rounded, "Déconnexion", () {
+            Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginPage()),
-                (route) => false,
-              );
-            },
-          ),
-          const SizedBox(height: 20),
+                (route) => false);
+          }, color: Colors.red),
+          const SizedBox(height: 10),
         ],
       ),
+    );
+  }
+
+  Widget _drawerItem(IconData icon, String title, VoidCallback onTap,
+      {Color? color}) {
+    return ListTile(
+      leading: Icon(icon, color: color ?? Colors.blueGrey),
+      title: Text(title,
+          style: TextStyle(
+              color: color ?? Colors.black87,
+              fontWeight: color != null ? FontWeight.bold : FontWeight.normal)),
+      onTap: onTap,
     );
   }
 }
